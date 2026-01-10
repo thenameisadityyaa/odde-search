@@ -9,10 +9,10 @@ import About from "./pages/About";
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen bg-liquid text-white">
         <Navbar />
 
-        <main className="grow bg-gray-50">
+        <main className="pb-10">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<SearchResults />} />

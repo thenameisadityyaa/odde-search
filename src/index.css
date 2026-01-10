@@ -1,1 +1,48 @@
 @import "tailwindcss";
+
+/* Smooth fonts + consistent feel */
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+/* Apple-like soft background */
+.bg-liquid {
+  background:
+    radial-gradient(1200px circle at 10% 10%, rgba(59, 130, 246, 0.18), transparent 45%),
+    radial-gradient(900px circle at 90% 20%, rgba(168, 85, 247, 0.18), transparent 40%),
+    radial-gradient(700px circle at 50% 100%, rgba(34, 197, 94, 0.12), transparent 40%),
+    linear-gradient(to bottom, #0b1220, #0b1220);
+}
+
+/* Glass effect utility (reusable) */
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.glass-soft {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Smooth transitions overall */
+* {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease,
+    transform 200ms ease, box-shadow 200ms ease;
+}
