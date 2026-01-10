@@ -16,13 +16,11 @@ export function saveRecentSearch(query) {
   if (!trimmed) return;
 
   const existing = getRecentSearches();
+  const filtered = existing.filter(
+    (x) => x.toLowerCase() !== trimmed.toLowerCase()
+  );
 
-  // Remove duplicates
-  const filtered = existing.filter((x) => x.toLowerCase() !== trimmed.toLowerCase());
-
-  // Add to top and limit to 8
   const updated = [trimmed, ...filtered].slice(0, 8);
-
   localStorage.setItem(KEY, JSON.stringify(updated));
 }
 

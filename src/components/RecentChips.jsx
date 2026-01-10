@@ -20,7 +20,6 @@ export default function RecentChips({ items = [], onSelect, onClear }) {
             key={idx}
             onClick={() => onSelect(item)}
             className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/75 hover:bg-white/10 active:scale-95"
-            title={item}
           >
             {item}
           </button>

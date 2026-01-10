@@ -6,14 +6,17 @@ import { clearRecentSearches, getRecentSearches } from "../utils/storage";
 
 const TRENDING = [
   "React Router best practices",
-  "Tailwind CSS v4.1 glass UI",
+  "Tailwind CSS v4.1 liquid glass UI",
   "How APIs work in web apps",
   "Build a Google search clone",
+  "TanStack Query caching",
+  "Vercel deploy React app",
 ];
 
 export default function Home() {
   const navigate = useNavigate();
   const [recent, setRecent] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     setRecent(getRecentSearches());
@@ -37,8 +40,7 @@ export default function Home() {
         </div>
 
         <h1 className="mt-6 text-3xl sm:text-5xl font-extrabold tracking-tight">
-          Explore the Web with{" "}
-          <span className="text-blue-400">Odde Search</span>
+          Explore the Web with <span className="text-blue-400">Odde Search</span>
         </h1>
 
         <p className="mt-4 text-white/70 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
@@ -46,20 +48,38 @@ export default function Home() {
           Designed for learning, speed, and a clean Apple-like UI.
         </p>
 
+        {/* SearchBar */}
         <div className="mt-8">
           <SearchBar
             size="lg"
+            suggestions={[...recent, ...TRENDING]}
             onSearch={(q) => navigate(`/search?q=${encodeURIComponent(q)}`)}
+            onDropdownChange={setDropdownOpen}
           />
         </div>
 
-        <div className="mt-6 max-w-2xl mx-auto">
-          <SuggestionsPanel
-            recent={recent}
-            trending={TRENDING}
-            onSelect={handleSelect}
-            onClear={handleClear}
-          />
+        {/* ✅ FIXED: SuggestionsPanel stays in layout (no jumping)
+            - When dropdown is open -> panel becomes invisible but keeps space */}
+        <div className="mt-6 max-w-2xl mx-auto relative">
+          {/* Optional overlay effect when dropdown open */}
+          {dropdownOpen && (
+            <div className="absolute inset-0 rounded-2xl bg-black/30 backdrop-blur-sm z-10 pointer-events-none" />
+          )}
+
+          <div
+            className={`transition-all duration-200 ${
+              dropdownOpen
+                ? "opacity-0 pointer-events-none"
+                : "opacity-100 pointer-events-auto"
+            }`}
+          >
+            <SuggestionsPanel
+              recent={recent}
+              trending={TRENDING}
+              onSelect={handleSelect}
+              onClear={handleClear}
+            />
+          </div>
         </div>
       </section>
 
