@@ -29,8 +29,8 @@ body {
 .glass {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(5px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
@@ -45,4 +45,51 @@ body {
 * {
   transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease,
     transform 200ms ease, box-shadow 200ms ease;
+}
+
+/* ===== Liquid background animated blobs (Apple-like) ===== */
+@keyframes floatSlow {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(30px, -25px, 0) scale(1.07);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes floatSlower {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-35px, 30px, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes floatReverse {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-20px, -20px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Reusable blob class */
+.liquid-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(50px);
+  opacity: 0.55;
+  will-change: transform;
+  pointer-events: none;
 }
