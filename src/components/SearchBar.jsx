@@ -1,14 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function SearchBar({ size = "lg" }) {
-  const [query, setQuery] = useState("");
+export default function SearchBar({
+  size = "lg",
+  defaultValue = "",
+  onSearch,
+}) {
+  const [query, setQuery] = useState(defaultValue);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setQuery(defaultValue);
+  }, [defaultValue]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
+
+    // allow parent control
+    if (onSearch) {
+      onSearch(trimmed);
+      return;
+    }
+
     navigate(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
@@ -22,12 +37,7 @@ export default function SearchBar({ size = "lg" }) {
   return (
     <form onSubmit={handleSearch} className={`w-full ${width} mx-auto`}>
       <div className="glass-soft flex items-center gap-3 rounded-2xl px-4 py-3">
-        {/* Search icon */}
-        <svg
-          className="h-5 w-5 text-white/60"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
+        <svg className="h-5 w-5 text-white/60" viewBox="0 0 24 24" fill="none">
           <path
             d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
             stroke="currentColor"
@@ -55,10 +65,6 @@ export default function SearchBar({ size = "lg" }) {
           Search
         </button>
       </div>
-
-      <p className="mt-2 text-xs text-white/50 text-center">
-        Press <span className="font-semibold text-white/70">Enter</span> to search
-      </p>
     </form>
   );
 }

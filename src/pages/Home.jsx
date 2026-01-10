@@ -1,6 +1,33 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
+import SuggestionsPanel from "../components/SuggestionsPanel";
+import { clearRecentSearches, getRecentSearches } from "../utils/storage";
+
+const TRENDING = [
+  "React Router best practices",
+  "Tailwind CSS v4.1 glass UI",
+  "How APIs work in web apps",
+  "Build a Google search clone",
+];
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [recent, setRecent] = useState([]);
+
+  useEffect(() => {
+    setRecent(getRecentSearches());
+  }, []);
+
+  const handleSelect = (value) => {
+    navigate(`/search?q=${encodeURIComponent(value)}`);
+  };
+
+  const handleClear = () => {
+    clearRecentSearches();
+    setRecent([]);
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 pt-10 sm:pt-16">
       {/* Hero */}
@@ -20,12 +47,24 @@ export default function Home() {
         </p>
 
         <div className="mt-8">
-          <SearchBar size="lg" />
+          <SearchBar
+            size="lg"
+            onSearch={(q) => navigate(`/search?q=${encodeURIComponent(q)}`)}
+          />
+        </div>
+
+        <div className="mt-6 max-w-2xl mx-auto">
+          <SuggestionsPanel
+            recent={recent}
+            trending={TRENDING}
+            onSelect={handleSelect}
+            onClear={handleClear}
+          />
         </div>
       </section>
 
-      {/* Glass Feature Cards */}
-      <section className="mt-12 pb-16">
+      {/* Feature Cards */}
+      <section className="mt-10 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <FeatureCard
             icon="🌐"
