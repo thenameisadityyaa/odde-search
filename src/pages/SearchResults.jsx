@@ -20,6 +20,9 @@ import {
 import { searchImages } from "../services/imageSearchService";
 import { searchWebCSE } from "../services/googleCseService";
 
+// ✅ Day 10 Cache Utils
+import { getCache, makeCacheKey, setCache } from "../utils/cache";
+
 const TRENDING_SEARCH = [
   "React hooks useEffect",
   "JavaScript promises",
@@ -38,6 +41,9 @@ export default function SearchResults() {
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ✅ Show cached badge
+  const [isCached, setIsCached] = useState(false);
 
   // ✅ web results (Google CSE)
   const [webResults, setWebResults] = useState([]);
@@ -78,13 +84,14 @@ export default function SearchResults() {
     }
   }, [activeTab]);
 
-  // ✅ Fetch data based on activeTab
+  // ✅ Fetch data based on activeTab + caching
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
 
       setLoading(true);
       setError("");
+      setIsCached(false);
 
       // reset current view
       setWebResults([]);
@@ -93,8 +100,21 @@ export default function SearchResults() {
       try {
         const start = performance.now();
 
-        // ✅ IMAGES tab uses RapidAPI Image Search
+        // ✅ IMAGES tab uses RapidAPI Image Search + cache
         if (activeTab === "images") {
+          const cacheKey = makeCacheKey("images", query, imagePage);
+          const cached = getCache(cacheKey);
+
+          // ✅ Serve from cache
+          if (cached) {
+            setImageResults(cached.imageResults || []);
+            setMeta(cached.meta || { totalResults: null, timeTaken: null });
+            setIsCached(true);
+            setLoading(false);
+            return;
+          }
+
+          // ✅ Fetch from API
           const data = await searchImages(query, imagePage);
 
           const items =
@@ -118,18 +138,36 @@ export default function SearchResults() {
             }))
             .filter((x) => x.link && x.link !== "#");
 
-          setImageResults(mappedImages);
-
-          setMeta({
+          const metaObj = {
             totalResults: null,
             timeTaken: ((performance.now() - start) / 1000).toFixed(2),
-          });
+          };
+
+          setImageResults(mappedImages);
+          setMeta(metaObj);
+
+          // ✅ Save cache (30 min)
+          setCache(cacheKey, { imageResults: mappedImages, meta: metaObj }, 1000 * 60 * 30);
 
           window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
 
-        // ✅ ALL / NEWS uses Google CSE
+        // ✅ ALL / NEWS uses Google CSE + cache
+        const cacheKey = makeCacheKey("web", query, page);
+        const cached = getCache(cacheKey);
+
+        // ✅ Serve from cache
+        if (cached) {
+          setWebResults(cached.webResults || []);
+          setMeta(cached.meta || { totalResults: null, timeTaken: null });
+          setHasNextWeb(!!cached.hasNextWeb);
+          setIsCached(true);
+          setLoading(false);
+          return;
+        }
+
+        // ✅ Fetch from API
         const data = await searchWebCSE(query, page);
         const end = performance.now();
 
@@ -148,10 +186,19 @@ export default function SearchResults() {
         const hasNext = !!data?.queries?.nextPage?.length;
         setHasNextWeb(hasNext);
 
-        setMeta({
+        const metaObj = {
           totalResults: data?.searchInformation?.formattedTotalResults || null,
           timeTaken: ((end - start) / 1000).toFixed(2),
-        });
+        };
+
+        setMeta(metaObj);
+
+        // ✅ Save cache (30 min)
+        setCache(
+          cacheKey,
+          { webResults: mappedWeb, meta: metaObj, hasNextWeb: hasNext },
+          1000 * 60 * 30
+        );
 
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
@@ -209,24 +256,24 @@ export default function SearchResults() {
               {activeTab === "images" ? (
                 <>
                   Image Page{" "}
-                  <span className="font-semibold text-white/80">
-                    {imagePage}
-                  </span>{" "}
+                  <span className="font-semibold text-white/80">{imagePage}</span>{" "}
                   for:{" "}
                 </>
               ) : (
                 <>
-                  Page{" "}
-                  <span className="font-semibold text-white/80">{page}</span>{" "}
+                  Page <span className="font-semibold text-white/80">{page}</span>{" "}
                   for:{" "}
                 </>
               )}
               <span className="text-blue-300 font-semibold">{query}</span>
+              {isCached && (
+                <span className="ml-2 text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
+                  cached
+                </span>
+              )}
             </p>
           ) : (
-            <p className="text-sm text-white/55">
-              Enter a query to fetch results.
-            </p>
+            <p className="text-sm text-white/55">Enter a query to fetch results.</p>
           )}
         </div>
       </div>
@@ -249,7 +296,15 @@ export default function SearchResults() {
                   Showing {imageResults.length} images{" "}
                   {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
                 </p>
-                <p className="hidden sm:block">Powered by RapidAPI</p>
+
+                <div className="hidden sm:flex items-center gap-2">
+                  <p>Powered by RapidAPI</p>
+                  {isCached && (
+                    <span className="text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
+                      cached
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -278,10 +333,7 @@ export default function SearchResults() {
                 </button>
 
                 <p className="text-sm text-white/60">
-                  Page{" "}
-                  <span className="text-white/90 font-semibold">
-                    {imagePage}
-                  </span>
+                  Page <span className="text-white/90 font-semibold">{imagePage}</span>
                 </p>
 
                 <button
@@ -299,10 +351,20 @@ export default function SearchResults() {
           <>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
               <p>
-                {meta.totalResults ? `About ${meta.totalResults} results` : `Showing ${webResults.length} results`}{" "}
+                {meta.totalResults
+                  ? `About ${meta.totalResults} results`
+                  : `Showing ${webResults.length} results`}{" "}
                 {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
               </p>
-              <p className="hidden sm:block">Powered by Google CSE</p>
+
+              <div className="hidden sm:flex items-center gap-2">
+                <p>Powered by Google CSE</p>
+                {isCached && (
+                  <span className="text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
+                    cached
+                  </span>
+                )}
+              </div>
             </div>
 
             {activeTab === "all" && (
