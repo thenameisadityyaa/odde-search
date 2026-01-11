@@ -10,6 +10,7 @@ import ResultsSkeleton from "../components/ResultsSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import RecentChips from "../components/RecentChips";
+import PreviewModal from "../components/PreviewModal";
 
 import {
   clearRecentSearches,
@@ -19,8 +20,9 @@ import {
 
 import { searchImages } from "../services/imageSearchService";
 import { searchWebCSE } from "../services/googleCseService";
+import { searchNews } from "../services/newsService";
 
-// ✅ Day 10 Cache Utils
+// ✅ Cache Utils
 import { getCache, makeCacheKey, setCache } from "../utils/cache";
 
 const TRENDING_SEARCH = [
@@ -42,10 +44,9 @@ export default function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ Show cached badge
   const [isCached, setIsCached] = useState(false);
 
-  // ✅ web results (Google CSE)
+  // ✅ web results
   const [webResults, setWebResults] = useState([]);
   const [page, setPage] = useState(1);
   const [hasNextWeb, setHasNextWeb] = useState(false);
@@ -54,17 +55,32 @@ export default function SearchResults() {
   const [imageResults, setImageResults] = useState([]);
   const [imagePage, setImagePage] = useState(1);
 
+  // ✅ news results
+  const [newsResults, setNewsResults] = useState([]);
+  const [newsPage, setNewsPage] = useState(1);
+  const [hasNextNews, setHasNextNews] = useState(false);
+
   // ✅ meta
   const [meta, setMeta] = useState({
     totalResults: null,
     timeTaken: null,
   });
 
+  // ✅ preview modal
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState({ title: "", link: "" });
+
+  const handlePreview = ({ title, link }) => {
+    if (!link) return;
+    setPreviewData({ title: title || "Preview", link });
+    setPreviewOpen(true);
+  };
+
   useEffect(() => {
     setRecent(getRecentSearches());
   }, []);
 
-  // save query to recent + reset pagination
+  // save query + reset pages
   useEffect(() => {
     if (!query.trim()) return;
 
@@ -73,18 +89,17 @@ export default function SearchResults() {
 
     setPage(1);
     setImagePage(1);
+    setNewsPage(1);
   }, [query]);
 
-  // reset pages when switching tabs
+  // reset pages on tab switch
   useEffect(() => {
-    if (activeTab === "images") {
-      setImagePage(1);
-    } else {
-      setPage(1);
-    }
+    if (activeTab === "images") setImagePage(1);
+    if (activeTab === "all") setPage(1);
+    if (activeTab === "news") setNewsPage(1);
   }, [activeTab]);
 
-  // ✅ Fetch data based on activeTab + caching
+  // ✅ fetch logic
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
@@ -93,19 +108,19 @@ export default function SearchResults() {
       setError("");
       setIsCached(false);
 
-      // reset current view
+      // reset view
       setWebResults([]);
       setImageResults([]);
+      setNewsResults([]);
 
       try {
         const start = performance.now();
 
-        // ✅ IMAGES tab uses RapidAPI Image Search + cache
+        // ✅ IMAGES
         if (activeTab === "images") {
           const cacheKey = makeCacheKey("images", query, imagePage);
           const cached = getCache(cacheKey);
 
-          // ✅ Serve from cache
           if (cached) {
             setImageResults(cached.imageResults || []);
             setMeta(cached.meta || { totalResults: null, timeTaken: null });
@@ -114,9 +129,7 @@ export default function SearchResults() {
             return;
           }
 
-          // ✅ Fetch from API
           const data = await searchImages(query, imagePage);
-
           const items =
             data?.data || data?.results || data?.images || data?.items || [];
 
@@ -146,18 +159,69 @@ export default function SearchResults() {
           setImageResults(mappedImages);
           setMeta(metaObj);
 
-          // ✅ Save cache (30 min)
-          setCache(cacheKey, { imageResults: mappedImages, meta: metaObj }, 1000 * 60 * 30);
+          setCache(
+            cacheKey,
+            { imageResults: mappedImages, meta: metaObj },
+            1000 * 60 * 30
+          );
 
           window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
 
-        // ✅ ALL / NEWS uses Google CSE + cache
+        // ✅ NEWS
+        if (activeTab === "news") {
+          const cacheKey = makeCacheKey("news", query, newsPage);
+          const cached = getCache(cacheKey);
+
+          if (cached) {
+            setNewsResults(cached.newsResults || []);
+            setHasNextNews(!!cached.hasNextNews);
+            setMeta(cached.meta || { totalResults: null, timeTaken: null });
+            setIsCached(true);
+            setLoading(false);
+            return;
+          }
+
+          const data = await searchNews(query, newsPage);
+          const articles = data?.articles || [];
+
+          const mappedNews = articles
+            .map((a) => ({
+              title: a?.title || "No title",
+              link: a?.url || "#",
+              snippet: a?.description || "No description",
+              image: a?.image || null,
+              source: a?.source?.name || "Unknown Source",
+              publishedAt: a?.publishedAt || null,
+            }))
+            .filter((x) => x.link && x.link !== "#");
+
+          const hasNext = mappedNews.length === 10;
+          setNewsResults(mappedNews);
+          setHasNextNews(hasNext);
+
+          const metaObj = {
+            totalResults: null,
+            timeTaken: ((performance.now() - start) / 1000).toFixed(2),
+          };
+
+          setMeta(metaObj);
+
+          setCache(
+            cacheKey,
+            { newsResults: mappedNews, meta: metaObj, hasNextNews: hasNext },
+            1000 * 60 * 30
+          );
+
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        // ✅ WEB (ALL)
         const cacheKey = makeCacheKey("web", query, page);
         const cached = getCache(cacheKey);
 
-        // ✅ Serve from cache
         if (cached) {
           setWebResults(cached.webResults || []);
           setMeta(cached.meta || { totalResults: null, timeTaken: null });
@@ -167,7 +231,6 @@ export default function SearchResults() {
           return;
         }
 
-        // ✅ Fetch from API
         const data = await searchWebCSE(query, page);
         const end = performance.now();
 
@@ -180,20 +243,17 @@ export default function SearchResults() {
           }))
           .filter((x) => x.link && x.link !== "#");
 
-        setWebResults(mappedWeb);
-
-        // ✅ Has next page?
         const hasNext = !!data?.queries?.nextPage?.length;
-        setHasNextWeb(hasNext);
 
         const metaObj = {
           totalResults: data?.searchInformation?.formattedTotalResults || null,
           timeTaken: ((end - start) / 1000).toFixed(2),
         };
 
+        setWebResults(mappedWeb);
+        setHasNextWeb(hasNext);
         setMeta(metaObj);
 
-        // ✅ Save cache (30 min)
         setCache(
           cacheKey,
           { webResults: mappedWeb, meta: metaObj, hasNextWeb: hasNext },
@@ -214,7 +274,7 @@ export default function SearchResults() {
     };
 
     run();
-  }, [query, activeTab, page, imagePage]);
+  }, [query, activeTab, page, imagePage, newsPage]);
 
   const suggestions = useMemo(() => {
     return [...recent, ...TRENDING_SEARCH].slice(0, 20);
@@ -256,7 +316,15 @@ export default function SearchResults() {
               {activeTab === "images" ? (
                 <>
                   Image Page{" "}
-                  <span className="font-semibold text-white/80">{imagePage}</span>{" "}
+                  <span className="font-semibold text-white/80">
+                    {imagePage}
+                  </span>{" "}
+                  for:{" "}
+                </>
+              ) : activeTab === "news" ? (
+                <>
+                  News Page{" "}
+                  <span className="font-semibold text-white/80">{newsPage}</span>{" "}
                   for:{" "}
                 </>
               ) : (
@@ -291,22 +359,6 @@ export default function SearchResults() {
             <EmptyState title="No images found" message="Try another keyword." />
           ) : (
             <>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
-                <p>
-                  Showing {imageResults.length} images{" "}
-                  {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
-                </p>
-
-                <div className="hidden sm:flex items-center gap-2">
-                  <p>Powered by RapidAPI</p>
-                  {isCached && (
-                    <span className="text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
-                      cached
-                    </span>
-                  )}
-                </div>
-              </div>
-
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {imageResults.map((img, idx) => (
                   <ImageResultCard
@@ -318,7 +370,6 @@ export default function SearchResults() {
                 ))}
               </div>
 
-              {/* ✅ Images Pagination */}
               <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
                 <button
                   onClick={() => setImagePage((p) => Math.max(1, p - 1))}
@@ -333,7 +384,8 @@ export default function SearchResults() {
                 </button>
 
                 <p className="text-sm text-white/60">
-                  Page <span className="text-white/90 font-semibold">{imagePage}</span>
+                  Page{" "}
+                  <span className="text-white/90 font-semibold">{imagePage}</span>
                 </p>
 
                 <button
@@ -345,55 +397,73 @@ export default function SearchResults() {
               </div>
             </>
           )
-        ) : webResults.length === 0 ? (
-          <EmptyState title="No results found" message="Try another keyword." />
-        ) : (
-          <>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
-              <p>
-                {meta.totalResults
-                  ? `About ${meta.totalResults} results`
-                  : `Showing ${webResults.length} results`}{" "}
-                {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
-              </p>
-
-              <div className="hidden sm:flex items-center gap-2">
-                <p>Powered by Google CSE</p>
-                {isCached && (
-                  <span className="text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
-                    cached
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {activeTab === "all" && (
+        ) : activeTab === "news" ? (
+          newsResults.length === 0 ? (
+            <EmptyState title="No news found" message="Try another keyword." />
+          ) : (
+            <>
               <div className="grid gap-4">
-                {webResults.map((r, idx) => (
-                  <ResultCard
-                    key={idx}
-                    title={r.title}
-                    link={r.link}
-                    snippet={r.snippet}
-                  />
-                ))}
-              </div>
-            )}
-
-            {activeTab === "news" && (
-              <div className="grid gap-4">
-                {webResults.map((r, idx) => (
+                {newsResults.map((r, idx) => (
                   <NewsResultCard
                     key={idx}
                     title={r.title}
                     link={r.link}
                     snippet={r.snippet}
+                    image={r.image}
+                    source={r.source}
+                    publishedAt={r.publishedAt}
                   />
                 ))}
               </div>
-            )}
 
-            {/* ✅ Web Pagination (Google CSE) */}
+              <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
+                <button
+                  onClick={() => setNewsPage((p) => Math.max(1, p - 1))}
+                  disabled={newsPage === 1}
+                  className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
+                    newsPage === 1
+                      ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
+                      : "border-white/15 bg-white/10 text-white hover:bg-white/15"
+                  }`}
+                >
+                  ← Previous
+                </button>
+
+                <p className="text-sm text-white/60">
+                  Page{" "}
+                  <span className="text-white/90 font-semibold">{newsPage}</span>
+                </p>
+
+                <button
+                  onClick={() => setNewsPage((p) => p + 1)}
+                  disabled={!hasNextNews}
+                  className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
+                    !hasNextNews
+                      ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
+                      : "border-white/15 bg-white/10 text-white hover:bg-white/15"
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
+            </>
+          )
+        ) : webResults.length === 0 ? (
+          <EmptyState title="No results found" message="Try another keyword." />
+        ) : (
+          <>
+            <div className="grid gap-4">
+              {webResults.map((r, idx) => (
+                <ResultCard
+                  key={idx}
+                  title={r.title}
+                  link={r.link}
+                  snippet={r.snippet}
+                  onPreview={handlePreview}
+                />
+              ))}
+            </div>
+
             <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -426,6 +496,14 @@ export default function SearchResults() {
           </>
         )}
       </div>
+
+      {/* Preview Modal */}
+      <PreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        url={previewData.link}
+        title={previewData.title}
+      />
     </div>
   );
 }

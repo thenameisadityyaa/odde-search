@@ -7,14 +7,14 @@ const PREFIX = "odde_cache_v1";
  * page number
  */
 export function makeCacheKey(type, query, page = 1) {
-  return `${PREFIX}:${type}:${query.toLowerCase().trim()}:p${page}`;
+  return `${PREFIX}:${type}:${String(query).toLowerCase().trim()}:p${page}`;
 }
 
 /**
  * Store cache with TTL (expiry)
+ * ttlMs default = 10 minutes
  */
 export function setCache(key, data, ttlMs = 1000 * 60 * 10) {
-  // default TTL = 10 minutes
   const payload = {
     expiry: Date.now() + ttlMs,
     data,
@@ -23,7 +23,7 @@ export function setCache(key, data, ttlMs = 1000 * 60 * 10) {
 }
 
 /**
- * Get cache if valid
+ * Get cache if valid (not expired)
  */
 export function getCache(key) {
   const raw = localStorage.getItem(key);
@@ -31,19 +31,28 @@ export function getCache(key) {
 
   try {
     const payload = JSON.parse(raw);
+
     if (!payload?.expiry || Date.now() > payload.expiry) {
       localStorage.removeItem(key);
       return null;
     }
+
     return payload.data;
-  } catch {
+  } catch (e) {
     localStorage.removeItem(key);
     return null;
   }
 }
 
 /**
- * Optional helper
+ * Remove a single cache key
+ */
+export function removeCache(key) {
+  localStorage.removeItem(key);
+}
+
+/**
+ * Clear all app cache (optional)
  */
 export function clearAllCache() {
   Object.keys(localStorage).forEach((k) => {

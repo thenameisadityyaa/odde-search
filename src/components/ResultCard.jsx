@@ -1,22 +1,64 @@
-export default function ResultCard({ title, link, snippet }) {
+import { useState } from "react";
+import { getDomain } from "../utils/format";
+
+export default function ResultCard({ title, link, snippet, onPreview }) {
+  const domain = getDomain(link);
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch (e) {
+      console.log("Clipboard copy failed:", e);
+    }
+  };
+
   return (
-    <a
-      href={link}
-      target="_blank"
-      rel="noreferrer"
-      className="block glass rounded-2xl p-5 hover:-translate-y-1 hover:shadow-2xl"
-    >
-      <p className="text-xs text-white/50 break-all">{link}</p>
+    <div className="glass rounded-3xl p-5 sm:p-6 border border-white/10 hover:border-white/20 transition">
+      <div className="flex flex-col gap-2">
+        <p className="text-[11px] text-white/55">{domain}</p>
 
-      <h3 className="mt-2 text-lg sm:text-xl font-semibold text-blue-300">
-        {title}
-      </h3>
+        <a
+          href={link}
+          target="_blank"
+          rel="noreferrer"
+          className="text-lg font-bold text-white/90 hover:text-white transition line-clamp-2"
+        >
+          {title}
+        </a>
 
-      <p className="mt-2 text-sm text-white/70 leading-relaxed">{snippet}</p>
+        <p className="text-sm text-white/65 leading-relaxed line-clamp-3">
+          {snippet}
+        </p>
 
-      <div className="mt-4 inline-flex items-center gap-2 text-sm text-white/60">
-        Open <span className="text-white/40">↗</span>
+        {/* Actions */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => onPreview?.({ title, link })}
+            className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          >
+            👁 Preview
+          </button>
+
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          >
+            ↗ Open
+          </a>
+
+          <button
+            onClick={copyLink}
+            className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          >
+            {copied ? "✅ Copied" : "🔗 Copy link"}
+          </button>
+        </div>
       </div>
-    </a>
+    </div>
   );
 }
