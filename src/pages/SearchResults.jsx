@@ -18,6 +18,7 @@ import {
 } from "../utils/storage";
 
 import { searchGoogle } from "../services/searchService";
+import { searchImages } from "../services/imageSearchService";
 
 const TRENDING_SEARCH = [
   "React hooks useEffect",
@@ -39,19 +40,24 @@ export default function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [results, setResults] = useState([]);
-
-  // extra data
+  // ✅ web results
+  const [webResults, setWebResults] = useState([]);
   const [relatedKeywords, setRelatedKeywords] = useState([]);
   const [knowledgePanel, setKnowledgePanel] = useState(null);
 
-  // Pagination
+  // ✅ image results
+  const [imageResults, setImageResults] = useState([]);
+
+  // ✅ Image pagination
+  const [imagePage, setImagePage] = useState(1);
+
+  // ✅ Pagination (web only)
   const [cursor, setCursor] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [cursorHistory, setCursorHistory] = useState([]);
   const [page, setPage] = useState(1);
 
-  // meta
+  // ✅ meta
   const [meta, setMeta] = useState({
     totalResults: null,
     timeTaken: null,
@@ -61,36 +67,98 @@ export default function SearchResults() {
     setRecent(getRecentSearches());
   }, []);
 
+  // ✅ save query to recent + reset pagination
   useEffect(() => {
     if (!query.trim()) return;
 
     saveRecentSearch(query);
     setRecent(getRecentSearches());
 
-    // reset pagination
+    // reset web pagination
     setCursor(null);
     setNextCursor(null);
     setCursorHistory([]);
     setPage(1);
+
+    // ✅ reset image pagination
+    setImagePage(1);
   }, [query]);
 
+  // ✅ Reset pages on tab switch (optional but clean UX)
+  useEffect(() => {
+    if (activeTab === "images") {
+      setImagePage(1);
+    } else {
+      setCursor(null);
+      setNextCursor(null);
+      setCursorHistory([]);
+      setPage(1);
+    }
+  }, [activeTab]);
+
+  // ✅ Fetch data based on activeTab
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
 
       setLoading(true);
       setError("");
-      setResults([]);
+
+      // reset current view
+      setWebResults([]);
+      setImageResults([]);
       setRelatedKeywords([]);
       setKnowledgePanel(null);
 
       try {
         const start = performance.now();
+
+        // ✅ If IMAGES tab → use Image API (with imagePage)
+        if (activeTab === "images") {
+          const data = await searchImages(query, imagePage);
+
+          /**
+           * Real-Time Image Search returns usually under:
+           * data.data
+           */
+          const items =
+            data?.data || data?.results || data?.images || data?.items || [];
+
+          const mappedImages = items
+            .map((img) => ({
+              title: img?.title || img?.name || "Image",
+              thumbnail:
+                img?.thumbnail_url ||
+                img?.thumbnail ||
+                img?.image ||
+                img?.url ||
+                null,
+              link:
+                img?.source_url ||
+                img?.source ||
+                img?.link ||
+                img?.url ||
+                "#",
+            }))
+            .filter((x) => x.link && x.link !== "#");
+
+          setImageResults(mappedImages);
+
+          setMeta({
+            totalResults: null,
+            timeTaken: ((performance.now() - start) / 1000).toFixed(2),
+          });
+
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        // ✅ ALL / NEWS → use Web API (cursor pagination)
         const data = await searchGoogle(query, cursor);
         const end = performance.now();
 
         const items = data?.results || [];
-        const mapped = items
+        const mappedWeb = items
           .map((item) => ({
             title: item?.title || "No title",
             link: item?.url || "#",
@@ -98,8 +166,7 @@ export default function SearchResults() {
           }))
           .filter((x) => x.link && x.link !== "#");
 
-        setResults(mapped);
-
+        setWebResults(mappedWeb);
         setNextCursor(data?.next_cursor || null);
 
         setMeta({
@@ -134,7 +201,7 @@ export default function SearchResults() {
     };
 
     run();
-  }, [query, cursor]);
+  }, [query, cursor, activeTab, imagePage]);
 
   const suggestions = useMemo(() => {
     const related = relatedKeywords.slice(0, 6);
@@ -145,6 +212,7 @@ export default function SearchResults() {
     navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
+  // ✅ Pagination handlers (web only)
   const handleNext = () => {
     if (!nextCursor) return;
     setCursorHistory((prev) => [...prev, cursor]);
@@ -167,6 +235,7 @@ export default function SearchResults() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Header */}
       <div className="glass rounded-3xl p-5 sm:p-7">
         <div className="flex flex-col gap-4">
           <h1 className="text-xl sm:text-2xl font-bold">Search</h1>
@@ -193,45 +262,113 @@ export default function SearchResults() {
 
           {query ? (
             <p className="text-sm text-white/60">
-              Page <span className="font-semibold text-white/80">{page}</span>{" "}
-              for:{" "}
+              {activeTab === "images" ? (
+                <>
+                  Image Page{" "}
+                  <span className="font-semibold text-white/80">
+                    {imagePage}
+                  </span>{" "}
+                  for:{" "}
+                </>
+              ) : (
+                <>
+                  Page{" "}
+                  <span className="font-semibold text-white/80">{page}</span>{" "}
+                  for:{" "}
+                </>
+              )}
               <span className="text-blue-300 font-semibold">{query}</span>
             </p>
           ) : (
-            <p className="text-sm text-white/55">Enter a query to fetch results.</p>
+            <p className="text-sm text-white/55">
+              Enter a query to fetch results.
+            </p>
           )}
         </div>
       </div>
 
+      {/* Results */}
       <div className="mt-6">
         {!query ? (
           <EmptyState
             title="Start searching"
-            message="Type something in the search bar to see results."
+            message="Type something to see results."
           />
         ) : loading ? (
           <ResultsSkeleton count={6} />
         ) : error ? (
           <ErrorState message={error} />
-        ) : results.length === 0 ? (
-          <EmptyState
-            title="No results found"
-            message="Try searching with different keywords."
-          />
+        ) : activeTab === "images" ? (
+          imageResults.length === 0 ? (
+            <EmptyState title="No images found" message="Try another keyword." />
+          ) : (
+            <>
+              {/* meta */}
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
+                <p>
+                  Showing {imageResults.length} images{" "}
+                  {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
+                </p>
+                <p className="hidden sm:block">Powered by RapidAPI</p>
+              </div>
+
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {imageResults.map((img, idx) => (
+                  <ImageResultCard
+                    key={idx}
+                    title={img.title}
+                    link={img.link}
+                    thumbnail={img.thumbnail}
+                  />
+                ))}
+              </div>
+
+              {/* ✅ Images Pagination */}
+              <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
+                <button
+                  onClick={() => setImagePage((p) => Math.max(1, p - 1))}
+                  disabled={imagePage === 1}
+                  className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
+                    imagePage === 1
+                      ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
+                      : "border-white/15 bg-white/10 text-white hover:bg-white/15"
+                  }`}
+                >
+                  ← Previous
+                </button>
+
+                <p className="text-sm text-white/60">
+                  Page{" "}
+                  <span className="text-white/90 font-semibold">
+                    {imagePage}
+                  </span>
+                </p>
+
+                <button
+                  onClick={() => setImagePage((p) => p + 1)}
+                  className="px-5 py-2 rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/15 transition active:scale-95"
+                >
+                  Next →
+                </button>
+              </div>
+            </>
+          )
+        ) : webResults.length === 0 ? (
+          <EmptyState title="No results found" message="Try another keyword." />
         ) : (
           <>
-            {/* Meta */}
+            {/* meta */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
               <p>
                 {meta.totalResults
                   ? `About ${meta.totalResults} results`
-                  : `Showing ${results.length} results`}{" "}
+                  : `Showing ${webResults.length} results`}{" "}
                 {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
               </p>
               <p className="hidden sm:block">Powered by RapidAPI</p>
             </div>
 
-            {/* Knowledge Panel only in ALL tab (clean UX) */}
+            {/* knowledge panel only in ALL */}
             {activeTab === "all" && knowledgePanel?.name && (
               <div className="glass rounded-3xl p-5 mb-6">
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -261,24 +398,11 @@ export default function SearchResults() {
               </div>
             )}
 
-            {/* ✅ Tab based rendering */}
+            {/* tab rendering */}
             {activeTab === "all" && (
               <div className="grid gap-4">
-                {results.map((r, idx) => (
+                {webResults.map((r, idx) => (
                   <ResultCard
-                    key={idx}
-                    title={r.title}
-                    link={r.link}
-                    snippet={r.snippet}
-                  />
-                ))}
-              </div>
-            )}
-
-            {activeTab === "images" && (
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {results.map((r, idx) => (
-                  <ImageResultCard
                     key={idx}
                     title={r.title}
                     link={r.link}
@@ -290,7 +414,7 @@ export default function SearchResults() {
 
             {activeTab === "news" && (
               <div className="grid gap-4">
-                {results.map((r, idx) => (
+                {webResults.map((r, idx) => (
                   <NewsResultCard
                     key={idx}
                     title={r.title}
@@ -301,7 +425,7 @@ export default function SearchResults() {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* pagination web only */}
             <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
               <button
                 onClick={handlePrev}
@@ -332,7 +456,7 @@ export default function SearchResults() {
               </button>
             </div>
 
-            {/* Related searches */}
+            {/* related searches */}
             {relatedKeywords.length > 0 && (
               <div className="mt-8 glass rounded-3xl p-5">
                 <p className="text-sm font-semibold text-white/80">

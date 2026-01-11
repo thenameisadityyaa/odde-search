@@ -1,18 +1,7 @@
-import { apiClient } from "./apiClient";
+import { webApi } from "./apiClient";
 
-/**
- * Google Search (RapidAPI)
- * baseURL: https://google-search74.p.rapidapi.com
- * endpoint: GET /
- *
- * Supports:
- * - query
- * - limit
- * - related_keywords
- * - cursor (for pagination)
- */
 export async function searchGoogle(query, cursor = null) {
-  const res = await apiClient.get("/", {
+  const res = await webApi.get("/", {
     params: {
       query,
       limit: 10,
