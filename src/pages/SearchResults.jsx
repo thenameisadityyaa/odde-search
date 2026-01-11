@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import SearchBar from "../components/SearchBar";
 import SearchTabs from "../components/SearchTabs";
+import SearchFilters from "../components/SearchFilters";
+
 import ResultCard from "../components/ResultCard";
 import ImageResultCard from "../components/ImageResultCard";
 import NewsResultCard from "../components/NewsResultCard";
@@ -25,6 +27,9 @@ import { searchNews } from "../services/newsService";
 // ✅ Cache Utils
 import { getCache, makeCacheKey, setCache } from "../utils/cache";
 
+// ✅ Day 13 Preferences (localStorage)
+import { getPrefs, savePrefs } from "../utils/preferences";
+
 const TRENDING_SEARCH = [
   "React hooks useEffect",
   "JavaScript promises",
@@ -45,6 +50,25 @@ export default function SearchResults() {
   const [error, setError] = useState("");
 
   const [isCached, setIsCached] = useState(false);
+
+  // ✅ Day 13 prefs state (persist)
+  const [prefs, setPrefs] = useState(() => {
+    return (
+      getPrefs() || {
+        region: "in",
+        safe: true,
+        perPage: 10,
+      }
+    );
+  });
+
+  const updatePrefs = (patch) => {
+    setPrefs((prev) => {
+      const updated = { ...prev, ...patch };
+      savePrefs(updated);
+      return updated;
+    });
+  };
 
   // ✅ web results
   const [webResults, setWebResults] = useState([]);
@@ -80,7 +104,7 @@ export default function SearchResults() {
     setRecent(getRecentSearches());
   }, []);
 
-  // save query + reset pages
+  // ✅ Reset pages when query changes
   useEffect(() => {
     if (!query.trim()) return;
 
@@ -92,12 +116,24 @@ export default function SearchResults() {
     setNewsPage(1);
   }, [query]);
 
-  // reset pages on tab switch
+  // ✅ Reset pages when switching tab
   useEffect(() => {
     if (activeTab === "images") setImagePage(1);
     if (activeTab === "all") setPage(1);
     if (activeTab === "news") setNewsPage(1);
   }, [activeTab]);
+
+  // ✅ Day 13: Reset pages when filters change
+  useEffect(() => {
+    setPage(1);
+    setImagePage(1);
+    setNewsPage(1);
+  }, [prefs.region, prefs.safe, prefs.perPage]);
+
+  // ✅ helper for cache keys (query + prefs)
+  const qWithPrefs = useMemo(() => {
+    return `${query}|r=${prefs.region}|s=${prefs.safe ? 1 : 0}|n=${prefs.perPage}`;
+  }, [query, prefs.region, prefs.safe, prefs.perPage]);
 
   // ✅ fetch logic
   useEffect(() => {
@@ -118,7 +154,7 @@ export default function SearchResults() {
 
         // ✅ IMAGES
         if (activeTab === "images") {
-          const cacheKey = makeCacheKey("images", query, imagePage);
+          const cacheKey = makeCacheKey("images", qWithPrefs, imagePage);
           const cached = getCache(cacheKey);
 
           if (cached) {
@@ -129,7 +165,7 @@ export default function SearchResults() {
             return;
           }
 
-          const data = await searchImages(query, imagePage);
+          const data = await searchImages(query, imagePage, prefs);
           const items =
             data?.data || data?.results || data?.images || data?.items || [];
 
@@ -171,7 +207,7 @@ export default function SearchResults() {
 
         // ✅ NEWS
         if (activeTab === "news") {
-          const cacheKey = makeCacheKey("news", query, newsPage);
+          const cacheKey = makeCacheKey("news", qWithPrefs, newsPage);
           const cached = getCache(cacheKey);
 
           if (cached) {
@@ -183,7 +219,7 @@ export default function SearchResults() {
             return;
           }
 
-          const data = await searchNews(query, newsPage);
+          const data = await searchNews(query, newsPage, prefs);
           const articles = data?.articles || [];
 
           const mappedNews = articles
@@ -197,7 +233,7 @@ export default function SearchResults() {
             }))
             .filter((x) => x.link && x.link !== "#");
 
-          const hasNext = mappedNews.length === 10;
+          const hasNext = mappedNews.length === (prefs.perPage || 10);
           setNewsResults(mappedNews);
           setHasNextNews(hasNext);
 
@@ -219,7 +255,7 @@ export default function SearchResults() {
         }
 
         // ✅ WEB (ALL)
-        const cacheKey = makeCacheKey("web", query, page);
+        const cacheKey = makeCacheKey("web", qWithPrefs, page);
         const cached = getCache(cacheKey);
 
         if (cached) {
@@ -231,7 +267,7 @@ export default function SearchResults() {
           return;
         }
 
-        const data = await searchWebCSE(query, page);
+        const data = await searchWebCSE(query, page, prefs);
         const end = performance.now();
 
         const items = data?.items || [];
@@ -274,7 +310,7 @@ export default function SearchResults() {
     };
 
     run();
-  }, [query, activeTab, page, imagePage, newsPage]);
+  }, [query, activeTab, page, imagePage, newsPage, qWithPrefs, prefs]);
 
   const suggestions = useMemo(() => {
     return [...recent, ...TRENDING_SEARCH].slice(0, 20);
@@ -299,6 +335,14 @@ export default function SearchResults() {
           />
 
           <SearchTabs active={activeTab} onChange={setActiveTab} />
+
+          {/* ✅ Day 13 Filters */}
+          <SearchFilters
+            region={prefs.region}
+            safe={prefs.safe}
+            perPage={prefs.perPage}
+            onChange={updatePrefs}
+          />
 
           <RecentChips
             items={recent}
@@ -329,7 +373,8 @@ export default function SearchResults() {
                 </>
               ) : (
                 <>
-                  Page <span className="font-semibold text-white/80">{page}</span>{" "}
+                  Page{" "}
+                  <span className="font-semibold text-white/80">{page}</span>{" "}
                   for:{" "}
                 </>
               )}

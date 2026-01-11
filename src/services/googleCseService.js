@@ -1,29 +1,28 @@
 import axios from "axios";
 
-/**
- * Google Custom Search JSON API
- * Pagination uses start:
- * page1 -> 1
- * page2 -> 11
- * page3 -> 21 ...
- */
-export async function searchWebCSE(query, page = 1) {
-  const key = import.meta.env.VITE_GOOGLE_CSE_KEY;
-  const cx = import.meta.env.VITE_GOOGLE_CSE_CX;
+export async function searchWebCSE(query, page = 1, options = {}) {
+  const key = import.meta.env.VITE_CSE_API_KEY;
+  const cx = import.meta.env.VITE_CSE_ID;
 
   if (!key || !cx) {
-    throw new Error("Missing CSE env vars: VITE_GOOGLE_CSE_KEY or VITE_GOOGLE_CSE_CX");
+    throw new Error("Missing Google CSE env vars");
   }
 
-  const start = (page - 1) * 10 + 1;
+  const start = (page - 1) * (options.perPage || 10) + 1;
 
   const res = await axios.get("https://www.googleapis.com/customsearch/v1", {
     params: {
-      q: query,
       key,
       cx,
+      q: query,
       start,
-      num: 10,
+      num: options.perPage || 10,
+
+      // SafeSearch in CSE
+      safe: options.safe ? "active" : "off",
+
+      // Region = country
+      gl: options.region || "in",
     },
   });
 
