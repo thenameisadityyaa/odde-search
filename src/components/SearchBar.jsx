@@ -6,7 +6,7 @@ export default function SearchBar({
   defaultValue = "",
   onSearch,
   suggestions = [],
-  onDropdownChange, // ✅ NEW: tells parent when dropdown opens/closes
+  onDropdownChange,
 }) {
   const [query, setQuery] = useState(defaultValue);
   const [open, setOpen] = useState(false);
@@ -44,18 +44,55 @@ export default function SearchBar({
       ? "max-w-xl"
       : "max-w-lg";
 
+  /**
+   * ✅ SANITIZE suggestions
+   * RapidAPI can return keywords as objects.
+   * We always convert to string safely.
+   */
+  const safeSuggestions = useMemo(() => {
+    const cleaned = suggestions
+      .map((s) => {
+        if (typeof s === "string") return s;
+        if (typeof s === "number") return String(s);
+
+        // If object like { keyword: "react" }
+        if (s && typeof s === "object") {
+          if (typeof s.keyword === "string") return s.keyword;
+          if (typeof s.text === "string") return s.text;
+          if (typeof s.value === "string") return s.value;
+        }
+
+        return null;
+      })
+      .filter(Boolean)
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
+
+    // remove duplicates (case-insensitive)
+    const uniq = [];
+    const seen = new Set();
+    for (const item of cleaned) {
+      const k = item.toLowerCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        uniq.push(item);
+      }
+    }
+    return uniq;
+  }, [suggestions]);
+
   // Filter suggestions based on query
   const filteredSuggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return suggestions.slice(0, 6);
+    if (!q) return safeSuggestions.slice(0, 6);
 
-    return suggestions
+    return safeSuggestions
       .filter((s) => s.toLowerCase().includes(q))
       .slice(0, 6);
-  }, [query, suggestions]);
+  }, [query, safeSuggestions]);
 
   const doSearch = (value) => {
-    const trimmed = value.trim();
+    const trimmed = String(value || "").trim();
     if (!trimmed) return;
 
     setOpen(false);
@@ -106,7 +143,6 @@ export default function SearchBar({
     <div ref={wrapRef} className={`w-full ${width} mx-auto relative z-30`}>
       <form onSubmit={handleSubmit}>
         <div className="glass-soft flex items-center gap-3 rounded-2xl px-4 py-3">
-          {/* icon */}
           <svg
             className="h-5 w-5 text-white/60"
             viewBox="0 0 24 24"
