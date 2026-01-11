@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import SearchTabs from "../components/SearchTabs";
 import ResultCard from "../components/ResultCard";
+import ImageResultCard from "../components/ImageResultCard";
+import NewsResultCard from "../components/NewsResultCard";
 import ResultsSkeleton from "../components/ResultsSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -43,10 +45,10 @@ export default function SearchResults() {
   const [relatedKeywords, setRelatedKeywords] = useState([]);
   const [knowledgePanel, setKnowledgePanel] = useState(null);
 
-  // Pagination states
+  // Pagination
   const [cursor, setCursor] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
-  const [cursorHistory, setCursorHistory] = useState([]); // store prev cursor tokens
+  const [cursorHistory, setCursorHistory] = useState([]);
   const [page, setPage] = useState(1);
 
   // meta
@@ -55,26 +57,23 @@ export default function SearchResults() {
     timeTaken: null,
   });
 
-  // load recent searches
   useEffect(() => {
     setRecent(getRecentSearches());
   }, []);
 
-  // save query to recent + reset pagination when query changes
   useEffect(() => {
     if (!query.trim()) return;
 
     saveRecentSearch(query);
     setRecent(getRecentSearches());
 
-    // ✅ reset pagination for new query
+    // reset pagination
     setCursor(null);
     setNextCursor(null);
     setCursorHistory([]);
     setPage(1);
   }, [query]);
 
-  // Fetch results (cursor-based pagination)
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
@@ -90,7 +89,6 @@ export default function SearchResults() {
         const data = await searchGoogle(query, cursor);
         const end = performance.now();
 
-        // ✅ results mapping
         const items = data?.results || [];
         const mapped = items
           .map((item) => ({
@@ -102,19 +100,13 @@ export default function SearchResults() {
 
         setResults(mapped);
 
-        // ✅ store next cursor from API (for Next page)
         setNextCursor(data?.next_cursor || null);
-
-        // ✅ meta (if API provides)
-        // some APIs provide total results. if not, show results count only
-        const timeTakenSeconds = ((end - start) / 1000).toFixed(2);
 
         setMeta({
           totalResults: data?.total_results || null,
-          timeTaken: timeTakenSeconds,
+          timeTaken: ((end - start) / 1000).toFixed(2),
         });
 
-        // ✅ related keywords mapping
         const rawKeywords = data?.related_keywords?.keywords || [];
         const cleanedKeywords = rawKeywords
           .map((k) => {
@@ -126,11 +118,8 @@ export default function SearchResults() {
           .filter(Boolean);
 
         setRelatedKeywords(cleanedKeywords);
-
-        // knowledge panel
         setKnowledgePanel(data?.knowledge_panel || null);
 
-        // smooth scroll to top on page change
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         console.log("API ERROR:", err);
@@ -145,7 +134,7 @@ export default function SearchResults() {
     };
 
     run();
-  }, [query, cursor, activeTab]);
+  }, [query, cursor]);
 
   const suggestions = useMemo(() => {
     const related = relatedKeywords.slice(0, 6);
@@ -156,10 +145,9 @@ export default function SearchResults() {
     navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
-  // ✅ Pagination handlers
   const handleNext = () => {
     if (!nextCursor) return;
-    setCursorHistory((prev) => [...prev, cursor]); // save current cursor
+    setCursorHistory((prev) => [...prev, cursor]);
     setCursor(nextCursor);
     setPage((p) => p + 1);
   };
@@ -169,7 +157,7 @@ export default function SearchResults() {
 
     setCursorHistory((prev) => {
       const updated = [...prev];
-      const lastCursor = updated.pop(); // go back
+      const lastCursor = updated.pop();
       setCursor(lastCursor || null);
       return updated;
     });
@@ -179,7 +167,6 @@ export default function SearchResults() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
       <div className="glass rounded-3xl p-5 sm:p-7">
         <div className="flex flex-col gap-4">
           <h1 className="text-xl sm:text-2xl font-bold">Search</h1>
@@ -211,14 +198,11 @@ export default function SearchResults() {
               <span className="text-blue-300 font-semibold">{query}</span>
             </p>
           ) : (
-            <p className="text-sm text-white/55">
-              Enter a query to fetch results.
-            </p>
+            <p className="text-sm text-white/55">Enter a query to fetch results.</p>
           )}
         </div>
       </div>
 
-      {/* Results */}
       <div className="mt-6">
         {!query ? (
           <EmptyState
@@ -236,40 +220,7 @@ export default function SearchResults() {
           />
         ) : (
           <>
-            {/* Knowledge Panel */}
-            {knowledgePanel?.name && (
-              <div className="glass rounded-3xl p-5 mb-6">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {knowledgePanel?.image?.url && (
-                    <img
-                      src={knowledgePanel.image.url}
-                      alt={knowledgePanel.name}
-                      className="w-20 h-20 rounded-2xl object-cover border border-white/10"
-                    />
-                  )}
-
-                  <div>
-                    <h2 className="text-lg font-bold text-white">
-                      {knowledgePanel.name}
-                    </h2>
-
-                    {knowledgePanel?.label && (
-                      <p className="text-sm text-white/60 mt-1">
-                        {knowledgePanel.label}
-                      </p>
-                    )}
-
-                    {knowledgePanel?.description?.text && (
-                      <p className="text-sm text-white/70 mt-3 leading-relaxed">
-                        {knowledgePanel.description.text}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ✅ Meta Info like Google */}
+            {/* Meta */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
               <p>
                 {meta.totalResults
@@ -280,19 +231,77 @@ export default function SearchResults() {
               <p className="hidden sm:block">Powered by RapidAPI</p>
             </div>
 
-            {/* Results list */}
-            <div className="grid gap-4">
-              {results.map((r, idx) => (
-                <ResultCard
-                  key={idx}
-                  title={r.title}
-                  link={r.link}
-                  snippet={r.snippet}
-                />
-              ))}
-            </div>
+            {/* Knowledge Panel only in ALL tab (clean UX) */}
+            {activeTab === "all" && knowledgePanel?.name && (
+              <div className="glass rounded-3xl p-5 mb-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {knowledgePanel?.image?.url && (
+                    <img
+                      src={knowledgePanel.image.url}
+                      alt={knowledgePanel.name}
+                      className="w-20 h-20 rounded-2xl object-cover border border-white/10"
+                    />
+                  )}
+                  <div>
+                    <h2 className="text-lg font-bold text-white">
+                      {knowledgePanel.name}
+                    </h2>
+                    {knowledgePanel?.label && (
+                      <p className="text-sm text-white/60 mt-1">
+                        {knowledgePanel.label}
+                      </p>
+                    )}
+                    {knowledgePanel?.description?.text && (
+                      <p className="text-sm text-white/70 mt-3 leading-relaxed">
+                        {knowledgePanel.description.text}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {/* ✅ Pagination Controls */}
+            {/* ✅ Tab based rendering */}
+            {activeTab === "all" && (
+              <div className="grid gap-4">
+                {results.map((r, idx) => (
+                  <ResultCard
+                    key={idx}
+                    title={r.title}
+                    link={r.link}
+                    snippet={r.snippet}
+                  />
+                ))}
+              </div>
+            )}
+
+            {activeTab === "images" && (
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {results.map((r, idx) => (
+                  <ImageResultCard
+                    key={idx}
+                    title={r.title}
+                    link={r.link}
+                    snippet={r.snippet}
+                  />
+                ))}
+              </div>
+            )}
+
+            {activeTab === "news" && (
+              <div className="grid gap-4">
+                {results.map((r, idx) => (
+                  <NewsResultCard
+                    key={idx}
+                    title={r.title}
+                    link={r.link}
+                    snippet={r.snippet}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
             <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
               <button
                 onClick={handlePrev}
