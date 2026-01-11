@@ -1,16 +1,23 @@
 import { apiClient } from "./apiClient";
 
 /**
- * ✅ Correct for google-search74.p.rapidapi.com
- * Endpoint: GET https://google-search74.p.rapidapi.com/
- * Params: query, limit, related_keywords
+ * Google Search (RapidAPI)
+ * baseURL: https://google-search74.p.rapidapi.com
+ * endpoint: GET /
+ *
+ * Supports:
+ * - query
+ * - limit
+ * - related_keywords
+ * - cursor (for pagination)
  */
-export async function searchGoogle(query) {
+export async function searchGoogle(query, cursor = null) {
   const res = await apiClient.get("/", {
     params: {
-      query: query,
+      query,
       limit: 10,
       related_keywords: true,
+      ...(cursor ? { cursor } : {}),
     },
   });
 

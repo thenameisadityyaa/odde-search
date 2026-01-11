@@ -34,7 +34,6 @@ export default function SearchResults() {
   const [activeTab, setActiveTab] = useState("all");
 
   const [recent, setRecent] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,19 +43,38 @@ export default function SearchResults() {
   const [relatedKeywords, setRelatedKeywords] = useState([]);
   const [knowledgePanel, setKnowledgePanel] = useState(null);
 
+  // Pagination states
+  const [cursor, setCursor] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [cursorHistory, setCursorHistory] = useState([]); // store prev cursor tokens
+  const [page, setPage] = useState(1);
+
+  // meta
+  const [meta, setMeta] = useState({
+    totalResults: null,
+    timeTaken: null,
+  });
+
   // load recent searches
   useEffect(() => {
     setRecent(getRecentSearches());
   }, []);
 
-  // save query to recent
+  // save query to recent + reset pagination when query changes
   useEffect(() => {
     if (!query.trim()) return;
+
     saveRecentSearch(query);
     setRecent(getRecentSearches());
+
+    // ✅ reset pagination for new query
+    setCursor(null);
+    setNextCursor(null);
+    setCursorHistory([]);
+    setPage(1);
   }, [query]);
 
-  // ✅ Fetch real API results
+  // Fetch results (cursor-based pagination)
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
@@ -68,7 +86,9 @@ export default function SearchResults() {
       setKnowledgePanel(null);
 
       try {
-        const data = await searchGoogle(query);
+        const start = performance.now();
+        const data = await searchGoogle(query, cursor);
+        const end = performance.now();
 
         // ✅ results mapping
         const items = data?.results || [];
@@ -82,8 +102,19 @@ export default function SearchResults() {
 
         setResults(mapped);
 
-        // ✅ related keywords mapping (IMPORTANT FIX)
-        // API returns objects: { keyword, keyword_html, ... }
+        // ✅ store next cursor from API (for Next page)
+        setNextCursor(data?.next_cursor || null);
+
+        // ✅ meta (if API provides)
+        // some APIs provide total results. if not, show results count only
+        const timeTakenSeconds = ((end - start) / 1000).toFixed(2);
+
+        setMeta({
+          totalResults: data?.total_results || null,
+          timeTaken: timeTakenSeconds,
+        });
+
+        // ✅ related keywords mapping
         const rawKeywords = data?.related_keywords?.keywords || [];
         const cleanedKeywords = rawKeywords
           .map((k) => {
@@ -98,6 +129,9 @@ export default function SearchResults() {
 
         // knowledge panel
         setKnowledgePanel(data?.knowledge_panel || null);
+
+        // smooth scroll to top on page change
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         console.log("API ERROR:", err);
         setError(
@@ -111,7 +145,7 @@ export default function SearchResults() {
     };
 
     run();
-  }, [query, activeTab]);
+  }, [query, cursor, activeTab]);
 
   const suggestions = useMemo(() => {
     const related = relatedKeywords.slice(0, 6);
@@ -120,6 +154,27 @@ export default function SearchResults() {
 
   const handleSearchFromBar = (q) => {
     navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
+
+  // ✅ Pagination handlers
+  const handleNext = () => {
+    if (!nextCursor) return;
+    setCursorHistory((prev) => [...prev, cursor]); // save current cursor
+    setCursor(nextCursor);
+    setPage((p) => p + 1);
+  };
+
+  const handlePrev = () => {
+    if (page <= 1) return;
+
+    setCursorHistory((prev) => {
+      const updated = [...prev];
+      const lastCursor = updated.pop(); // go back
+      setCursor(lastCursor || null);
+      return updated;
+    });
+
+    setPage((p) => Math.max(1, p - 1));
   };
 
   return (
@@ -151,11 +206,8 @@ export default function SearchResults() {
 
           {query ? (
             <p className="text-sm text-white/60">
-              Showing{" "}
-              <span className="font-semibold text-white/80">
-                {activeTab.toUpperCase()}
-              </span>{" "}
-              results for:{" "}
+              Page <span className="font-semibold text-white/80">{page}</span>{" "}
+              for:{" "}
               <span className="text-blue-300 font-semibold">{query}</span>
             </p>
           ) : (
@@ -217,13 +269,18 @@ export default function SearchResults() {
               </div>
             )}
 
-            {/* Result Count */}
-            <div className="mb-4 flex items-center justify-between text-xs text-white/50">
-              <p>Showing {results.length} results</p>
+            {/* ✅ Meta Info like Google */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
+              <p>
+                {meta.totalResults
+                  ? `About ${meta.totalResults} results`
+                  : `Showing ${results.length} results`}{" "}
+                {meta.timeTaken ? `(${meta.timeTaken} seconds)` : ""}
+              </p>
               <p className="hidden sm:block">Powered by RapidAPI</p>
             </div>
 
-            {/* Cards */}
+            {/* Results list */}
             <div className="grid gap-4">
               {results.map((r, idx) => (
                 <ResultCard
@@ -235,7 +292,38 @@ export default function SearchResults() {
               ))}
             </div>
 
-            {/* Related searches chips */}
+            {/* ✅ Pagination Controls */}
+            <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
+              <button
+                onClick={handlePrev}
+                disabled={page === 1}
+                className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
+                  page === 1
+                    ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
+                    : "border-white/15 bg-white/10 text-white hover:bg-white/15"
+                }`}
+              >
+                ← Previous
+              </button>
+
+              <p className="text-sm text-white/60">
+                Page <span className="text-white/90 font-semibold">{page}</span>
+              </p>
+
+              <button
+                onClick={handleNext}
+                disabled={!nextCursor}
+                className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
+                  !nextCursor
+                    ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
+                    : "border-white/15 bg-white/10 text-white hover:bg-white/15"
+                }`}
+              >
+                Next →
+              </button>
+            </div>
+
+            {/* Related searches */}
             {relatedKeywords.length > 0 && (
               <div className="mt-8 glass rounded-3xl p-5">
                 <p className="text-sm font-semibold text-white/80">
