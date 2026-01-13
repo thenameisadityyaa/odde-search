@@ -1,7 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import LiquidBackground from "./components/LiquidBackground";
+
+// ✅ Day 17
+import ErrorBoundary from "./components/ErrorBoundary";
 
 import Home from "./pages/Home";
 import SearchResults from "./pages/SearchResults";
@@ -12,28 +16,31 @@ import Settings from "./pages/Settings"; // ✅ Day 15
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-liquid text-white relative">
-        {/* Apple-like animated background */}
-        <LiquidBackground />
+      {/* ✅ Day 17: Wrap entire app so it never crashes */}
+      <ErrorBoundary>
+        <div className="min-h-screen bg-liquid text-white relative">
+          {/* Apple-like animated background */}
+          <LiquidBackground />
 
-        <Navbar />
+          <Navbar />
 
-        <main className="pb-10">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="/about" element={<About />} />
+          <main className="pb-10">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/search" element={<SearchResults />} />
+              <Route path="/about" element={<About />} />
 
-            {/* ✅ Day 14 */}
-            <Route path="/saved" element={<Saved />} />
+              {/* ✅ Day 14 */}
+              <Route path="/saved" element={<Saved />} />
 
-            {/* ✅ Day 15 */}
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </main>
+              {/* ✅ Day 15 */}
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </main>
 
-        <Footer />
-      </div>
+          <Footer />
+        </div>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

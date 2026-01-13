@@ -17,6 +17,10 @@ import PreviewModal from "../components/PreviewModal";
 // ✅ Day 16
 import ResultDetailsModal from "../components/ResultDetailsModal";
 
+// ✅ Day 17 Offline
+import useOnlineStatus from "../hooks/useOnlineStatus";
+import OfflineState from "../components/OfflineState";
+
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -53,6 +57,9 @@ export default function SearchResults() {
   const [error, setError] = useState("");
 
   const [isCached, setIsCached] = useState(false);
+
+  // ✅ Day 17: Online Status
+  const online = useOnlineStatus();
 
   // ✅ prefs state (persist)
   const [prefs, setPrefs] = useState(() => {
@@ -113,7 +120,7 @@ export default function SearchResults() {
     setRecent(getRecentSearches());
   }, []);
 
-  // Reset pages when query changes
+  // ✅ Reset pages when query changes
   useEffect(() => {
     if (!query.trim()) return;
 
@@ -125,14 +132,14 @@ export default function SearchResults() {
     setNewsPage(1);
   }, [query]);
 
-  // Reset pages when switching tab
+  // ✅ Reset pages when switching tab
   useEffect(() => {
     if (activeTab === "images") setImagePage(1);
     if (activeTab === "all") setPage(1);
     if (activeTab === "news") setNewsPage(1);
   }, [activeTab]);
 
-  // Reset pages when filters change
+  // ✅ Reset pages when filters change
   useEffect(() => {
     setPage(1);
     setImagePage(1);
@@ -144,10 +151,17 @@ export default function SearchResults() {
     return `${query}|r=${prefs.region}|s=${prefs.safe ? 1 : 0}|n=${prefs.perPage}`;
   }, [query, prefs.region, prefs.safe, prefs.perPage]);
 
-  // fetch logic
+  // ✅ fetch logic
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
+
+      // ✅ Day 17: Block API call when offline
+      if (!navigator.onLine) {
+        setLoading(false);
+        setError("You are offline. Please check your internet connection.");
+        return;
+      }
 
       setLoading(true);
       setError("");
@@ -203,7 +217,12 @@ export default function SearchResults() {
           setImageResults(mappedImages);
           setMeta(metaObj);
 
-          setCache(cacheKey, { imageResults: mappedImages, meta: metaObj }, 1000 * 60 * 30);
+          setCache(
+            cacheKey,
+            { imageResults: mappedImages, meta: metaObj },
+            1000 * 60 * 30
+          );
+
           window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
@@ -349,7 +368,9 @@ export default function SearchResults() {
 
           <RecentChips
             items={recent}
-            onSelect={(value) => navigate(`/search?q=${encodeURIComponent(value)}`)}
+            onSelect={(value) =>
+              navigate(`/search?q=${encodeURIComponent(value)}`)
+            }
             onClear={() => {
               clearRecentSearches();
               setRecent([]);
@@ -360,12 +381,14 @@ export default function SearchResults() {
             <p className="text-sm text-white/60">
               {activeTab === "images" ? (
                 <>
-                  Image Page <span className="font-semibold text-white/80">{imagePage}</span>{" "}
+                  Image Page{" "}
+                  <span className="font-semibold text-white/80">{imagePage}</span>{" "}
                   for:{" "}
                 </>
               ) : activeTab === "news" ? (
                 <>
-                  News Page <span className="font-semibold text-white/80">{newsPage}</span>{" "}
+                  News Page{" "}
+                  <span className="font-semibold text-white/80">{newsPage}</span>{" "}
                   for:{" "}
                 </>
               ) : (
@@ -375,6 +398,13 @@ export default function SearchResults() {
                 </>
               )}
               <span className="text-blue-300 font-semibold">{query}</span>
+
+              {!online && (
+                <span className="ml-2 text-[10px] px-2 py-1 rounded-full border border-red-400/20 bg-red-500/10 text-red-200">
+                  offline
+                </span>
+              )}
+
               {isCached && (
                 <span className="ml-2 text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
                   cached
@@ -390,7 +420,12 @@ export default function SearchResults() {
       {/* Results */}
       <div className="mt-6">
         {!query ? (
-          <EmptyState title="Start searching" message="Type something to see results." />
+          <EmptyState
+            title="Start searching"
+            message="Type something to see results."
+          />
+        ) : !online ? (
+          <OfflineState />
         ) : loading ? (
           <ResultsSkeleton count={6} />
         ) : error ? (
@@ -402,7 +437,12 @@ export default function SearchResults() {
             <>
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {imageResults.map((img, idx) => (
-                  <ImageResultCard key={idx} title={img.title} link={img.link} thumbnail={img.thumbnail} />
+                  <ImageResultCard
+                    key={idx}
+                    title={img.title}
+                    link={img.link}
+                    thumbnail={img.thumbnail}
+                  />
                 ))}
               </div>
 
@@ -420,7 +460,8 @@ export default function SearchResults() {
                 </button>
 
                 <p className="text-sm text-white/60">
-                  Page <span className="text-white/90 font-semibold">{imagePage}</span>
+                  Page{" "}
+                  <span className="text-white/90 font-semibold">{imagePage}</span>
                 </p>
 
                 <button
@@ -465,7 +506,8 @@ export default function SearchResults() {
                 </button>
 
                 <p className="text-sm text-white/60">
-                  Page <span className="text-white/90 font-semibold">{newsPage}</span>
+                  Page{" "}
+                  <span className="text-white/90 font-semibold">{newsPage}</span>
                 </p>
 
                 <button
@@ -494,7 +536,7 @@ export default function SearchResults() {
                   link={r.link}
                   snippet={r.snippet}
                   onPreview={handlePreview}
-                  onDetails={openDetails} // ✅ Day 16
+                  onDetails={openDetails}
                 />
               ))}
             </div>

@@ -52,64 +52,75 @@ export default function ResultCard({
   };
 
   return (
-    <div className="glass rounded-3xl p-5 border border-white/10 hover:border-white/20 transition">
-      <p className="text-xs text-white/45 truncate">{link}</p>
+    <div className="glass w-full overflow-hidden rounded-3xl p-5 border border-white/10 hover:border-white/20 transition">
+      {/* URL */}
+      <p className="text-xs text-white/45 truncate max-w-full">
+        {link}
+      </p>
 
+      {/* Title */}
       <a
         href={link}
         target="_blank"
         rel="noreferrer"
-        className="mt-2 block text-lg font-bold text-white/90 hover:text-white transition line-clamp-2"
+        className="mt-2 block text-lg font-bold text-white/90 hover:text-white transition line-clamp-2 wrap-break-words"
       >
         {title}
       </a>
 
-      <p className="mt-2 text-sm text-white/65 leading-relaxed line-clamp-3">
+      {/* Snippet */}
+      <p className="mt-2 text-sm text-white/65 leading-relaxed line-clamp-3 wrap-break-words">
         {snippet}
       </p>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/* ✅ Actions (Mobile Safe Layout) */}
+      <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        {/* Open */}
         <a
           href={link}
           target="_blank"
           rel="noreferrer"
-          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          className="w-full sm:w-auto text-center px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
         >
           ↗ Open
         </a>
 
+        {/* Preview */}
         <button
           onClick={() => onPreview?.({ title, link })}
-          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
         >
           👁 Preview
         </button>
 
-        {/* ✅ Day 16 */}
+        {/* Details */}
         <button
           onClick={() => onDetails?.({ title, link, snippet })}
-          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
         >
           ℹ Details
         </button>
 
+        {/* Copy */}
         <button
           onClick={copyLink}
-          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
         >
           {copied ? "✅ Copied" : "🔗 Copy"}
         </button>
 
+        {/* Share */}
         <button
           onClick={shareLink}
-          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+          className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
         >
           📤 Share
         </button>
 
+        {/* Save */}
         <button
           onClick={toggleSave}
-          className={`px-4 py-2 rounded-xl border transition active:scale-95 text-xs ${
+          className={`w-full sm:w-auto px-4 py-2 rounded-xl border transition active:scale-95 text-xs ${
             saved
               ? "border-amber-400/20 bg-amber-500/10 text-amber-200"
               : "border-white/15 bg-white/10 text-white/85 hover:bg-white/15"
