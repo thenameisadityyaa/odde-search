@@ -6,7 +6,8 @@ import LiquidBackground from "./components/LiquidBackground";
 import Home from "./pages/Home";
 import SearchResults from "./pages/SearchResults";
 import About from "./pages/About";
-import Saved from "./pages/Saved"; // ✅ Day 14: Saved page
+import Saved from "./pages/Saved"; // ✅ Day 14
+import Settings from "./pages/Settings"; // ✅ Day 15
 
 export default function App() {
   return (
@@ -25,6 +26,9 @@ export default function App() {
 
             {/* ✅ Day 14 */}
             <Route path="/saved" element={<Saved />} />
+
+            {/* ✅ Day 15 */}
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
 
