@@ -79,9 +79,11 @@ export default function Navbar() {
             className="text-lg sm:text-xl font-bold tracking-tight group"
             onClick={() => setOpen(false)}
           >
-            <span className="group-hover:text-white transition-colors">Odde</span>
+            <span className="group-hover:text-white transition-colors">
+              Odde
+            </span>
             <span className="text-blue-400 group-hover:text-blue-300 transition-colors">
-             Search
+              Search
             </span>
           </Link>
 
@@ -105,6 +107,16 @@ export default function Navbar() {
               )}
             </NavLink>
 
+            {/* ✅ Day 14: Saved */}
+            <NavLink to="/saved" className={navClass}>
+              {({ isActive }) => (
+                <>
+                  Saved
+                  {isActive ? <ActiveUnderline /> : <Underline />}
+                </>
+              )}
+            </NavLink>
+
             <NavLink to="/about" className={navClass}>
               {({ isActive }) => (
                 <>
@@ -122,7 +134,11 @@ export default function Navbar() {
             aria-label="Toggle menu"
             aria-expanded={open}
           >
-            {open ? <span className="text-lg">✕</span> : <span className="text-lg">☰</span>}
+            {open ? (
+              <span className="text-lg">✕</span>
+            ) : (
+              <span className="text-lg">☰</span>
+            )}
           </button>
         </div>
 
@@ -130,7 +146,7 @@ export default function Navbar() {
         <div
           className={`
             sm:hidden overflow-hidden transition-all duration-300 ease-out
-            ${open ? "max-h-56 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}
+            ${open ? "max-h-72 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}
           `}
         >
           <div className="glass rounded-2xl p-3">
@@ -156,6 +172,24 @@ export default function Navbar() {
                 {({ isActive }) => (
                   <div className="w-full flex items-center justify-between">
                     <span>Search</span>
+                    <span
+                      className={`h-[2px] rounded-full transition-all duration-300 ${
+                        isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
+                      }`}
+                    />
+                  </div>
+                )}
+              </NavLink>
+
+              {/* ✅ Day 14: Saved */}
+              <NavLink
+                to="/saved"
+                className={navClass}
+                onClick={() => setOpen(false)}
+              >
+                {({ isActive }) => (
+                  <div className="w-full flex items-center justify-between">
+                    <span>Saved</span>
                     <span
                       className={`h-[2px] rounded-full transition-all duration-300 ${
                         isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
