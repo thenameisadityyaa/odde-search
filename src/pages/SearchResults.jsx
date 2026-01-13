@@ -14,6 +14,9 @@ import ErrorState from "../components/ErrorState";
 import RecentChips from "../components/RecentChips";
 import PreviewModal from "../components/PreviewModal";
 
+// ✅ Day 16
+import ResultDetailsModal from "../components/ResultDetailsModal";
+
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -27,7 +30,7 @@ import { searchNews } from "../services/newsService";
 // ✅ Cache Utils
 import { getCache, makeCacheKey, setCache } from "../utils/cache";
 
-// ✅ Day 13 Preferences (localStorage)
+// ✅ Preferences
 import { getPrefs, savePrefs } from "../utils/preferences";
 
 const TRENDING_SEARCH = [
@@ -51,7 +54,7 @@ export default function SearchResults() {
 
   const [isCached, setIsCached] = useState(false);
 
-  // ✅ Day 13 prefs state (persist)
+  // ✅ prefs state (persist)
   const [prefs, setPrefs] = useState(() => {
     return (
       getPrefs() || {
@@ -70,21 +73,18 @@ export default function SearchResults() {
     });
   };
 
-  // ✅ web results
+  // ✅ results
   const [webResults, setWebResults] = useState([]);
   const [page, setPage] = useState(1);
   const [hasNextWeb, setHasNextWeb] = useState(false);
 
-  // ✅ image results
   const [imageResults, setImageResults] = useState([]);
   const [imagePage, setImagePage] = useState(1);
 
-  // ✅ news results
   const [newsResults, setNewsResults] = useState([]);
   const [newsPage, setNewsPage] = useState(1);
   const [hasNextNews, setHasNextNews] = useState(false);
 
-  // ✅ meta
   const [meta, setMeta] = useState({
     totalResults: null,
     timeTaken: null,
@@ -100,11 +100,20 @@ export default function SearchResults() {
     setPreviewOpen(true);
   };
 
+  // ✅ Day 16 details modal
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsData, setDetailsData] = useState(null);
+
+  const openDetails = (result) => {
+    setDetailsData(result);
+    setDetailsOpen(true);
+  };
+
   useEffect(() => {
     setRecent(getRecentSearches());
   }, []);
 
-  // ✅ Reset pages when query changes
+  // Reset pages when query changes
   useEffect(() => {
     if (!query.trim()) return;
 
@@ -116,26 +125,26 @@ export default function SearchResults() {
     setNewsPage(1);
   }, [query]);
 
-  // ✅ Reset pages when switching tab
+  // Reset pages when switching tab
   useEffect(() => {
     if (activeTab === "images") setImagePage(1);
     if (activeTab === "all") setPage(1);
     if (activeTab === "news") setNewsPage(1);
   }, [activeTab]);
 
-  // ✅ Day 13: Reset pages when filters change
+  // Reset pages when filters change
   useEffect(() => {
     setPage(1);
     setImagePage(1);
     setNewsPage(1);
   }, [prefs.region, prefs.safe, prefs.perPage]);
 
-  // ✅ helper for cache keys (query + prefs)
+  // helper for cache keys (query + prefs)
   const qWithPrefs = useMemo(() => {
     return `${query}|r=${prefs.region}|s=${prefs.safe ? 1 : 0}|n=${prefs.perPage}`;
   }, [query, prefs.region, prefs.safe, prefs.perPage]);
 
-  // ✅ fetch logic
+  // fetch logic
   useEffect(() => {
     const run = async () => {
       if (!query.trim()) return;
@@ -144,7 +153,6 @@ export default function SearchResults() {
       setError("");
       setIsCached(false);
 
-      // reset view
       setWebResults([]);
       setImageResults([]);
       setNewsResults([]);
@@ -152,7 +160,7 @@ export default function SearchResults() {
       try {
         const start = performance.now();
 
-        // ✅ IMAGES
+        // IMAGES
         if (activeTab === "images") {
           const cacheKey = makeCacheKey("images", qWithPrefs, imagePage);
           const cached = getCache(cacheKey);
@@ -195,17 +203,12 @@ export default function SearchResults() {
           setImageResults(mappedImages);
           setMeta(metaObj);
 
-          setCache(
-            cacheKey,
-            { imageResults: mappedImages, meta: metaObj },
-            1000 * 60 * 30
-          );
-
+          setCache(cacheKey, { imageResults: mappedImages, meta: metaObj }, 1000 * 60 * 30);
           window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
 
-        // ✅ NEWS
+        // NEWS
         if (activeTab === "news") {
           const cacheKey = makeCacheKey("news", qWithPrefs, newsPage);
           const cached = getCache(cacheKey);
@@ -234,6 +237,7 @@ export default function SearchResults() {
             .filter((x) => x.link && x.link !== "#");
 
           const hasNext = mappedNews.length === (prefs.perPage || 10);
+
           setNewsResults(mappedNews);
           setHasNextNews(hasNext);
 
@@ -254,7 +258,7 @@ export default function SearchResults() {
           return;
         }
 
-        // ✅ WEB (ALL)
+        // WEB (ALL)
         const cacheKey = makeCacheKey("web", qWithPrefs, page);
         const cached = getCache(cacheKey);
 
@@ -336,7 +340,6 @@ export default function SearchResults() {
 
           <SearchTabs active={activeTab} onChange={setActiveTab} />
 
-          {/* ✅ Day 13 Filters */}
           <SearchFilters
             region={prefs.region}
             safe={prefs.safe}
@@ -346,9 +349,7 @@ export default function SearchResults() {
 
           <RecentChips
             items={recent}
-            onSelect={(value) =>
-              navigate(`/search?q=${encodeURIComponent(value)}`)
-            }
+            onSelect={(value) => navigate(`/search?q=${encodeURIComponent(value)}`)}
             onClear={() => {
               clearRecentSearches();
               setRecent([]);
@@ -359,22 +360,17 @@ export default function SearchResults() {
             <p className="text-sm text-white/60">
               {activeTab === "images" ? (
                 <>
-                  Image Page{" "}
-                  <span className="font-semibold text-white/80">
-                    {imagePage}
-                  </span>{" "}
+                  Image Page <span className="font-semibold text-white/80">{imagePage}</span>{" "}
                   for:{" "}
                 </>
               ) : activeTab === "news" ? (
                 <>
-                  News Page{" "}
-                  <span className="font-semibold text-white/80">{newsPage}</span>{" "}
+                  News Page <span className="font-semibold text-white/80">{newsPage}</span>{" "}
                   for:{" "}
                 </>
               ) : (
                 <>
-                  Page{" "}
-                  <span className="font-semibold text-white/80">{page}</span>{" "}
+                  Page <span className="font-semibold text-white/80">{page}</span>{" "}
                   for:{" "}
                 </>
               )}
@@ -406,12 +402,7 @@ export default function SearchResults() {
             <>
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {imageResults.map((img, idx) => (
-                  <ImageResultCard
-                    key={idx}
-                    title={img.title}
-                    link={img.link}
-                    thumbnail={img.thumbnail}
-                  />
+                  <ImageResultCard key={idx} title={img.title} link={img.link} thumbnail={img.thumbnail} />
                 ))}
               </div>
 
@@ -429,8 +420,7 @@ export default function SearchResults() {
                 </button>
 
                 <p className="text-sm text-white/60">
-                  Page{" "}
-                  <span className="text-white/90 font-semibold">{imagePage}</span>
+                  Page <span className="text-white/90 font-semibold">{imagePage}</span>
                 </p>
 
                 <button
@@ -475,8 +465,7 @@ export default function SearchResults() {
                 </button>
 
                 <p className="text-sm text-white/60">
-                  Page{" "}
-                  <span className="text-white/90 font-semibold">{newsPage}</span>
+                  Page <span className="text-white/90 font-semibold">{newsPage}</span>
                 </p>
 
                 <button
@@ -505,6 +494,7 @@ export default function SearchResults() {
                   link={r.link}
                   snippet={r.snippet}
                   onPreview={handlePreview}
+                  onDetails={openDetails} // ✅ Day 16
                 />
               ))}
             </div>
@@ -548,6 +538,13 @@ export default function SearchResults() {
         onClose={() => setPreviewOpen(false)}
         url={previewData.link}
         title={previewData.title}
+      />
+
+      {/* ✅ Day 16 Details Modal */}
+      <ResultDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        result={detailsData}
       />
     </div>
   );

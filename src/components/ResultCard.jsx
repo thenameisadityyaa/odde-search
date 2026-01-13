@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { isSaved, removeSaved, saveItem } from "../utils/saved";
 
-export default function ResultCard({ title, link, snippet, onPreview }) {
+export default function ResultCard({
+  title,
+  link,
+  snippet,
+  onPreview,
+  onDetails,
+}) {
   const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setSaved(isSaved(link));
@@ -15,6 +22,32 @@ export default function ResultCard({ title, link, snippet, onPreview }) {
     } else {
       saveItem({ title, link, snippet, type: "web" });
       setSaved(true);
+    }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch (e) {
+      console.log("Copy failed:", e);
+    }
+  };
+
+  const shareLink = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: title || "Odde Search Result",
+          text: snippet || "",
+          url: link,
+        });
+      } else {
+        await copyLink();
+      }
+    } catch {
+      // cancelled share
     }
   };
 
@@ -50,6 +83,28 @@ export default function ResultCard({ title, link, snippet, onPreview }) {
           className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
         >
           👁 Preview
+        </button>
+
+        {/* ✅ Day 16 */}
+        <button
+          onClick={() => onDetails?.({ title, link, snippet })}
+          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+        >
+          ℹ Details
+        </button>
+
+        <button
+          onClick={copyLink}
+          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+        >
+          {copied ? "✅ Copied" : "🔗 Copy"}
+        </button>
+
+        <button
+          onClick={shareLink}
+          className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
+        >
+          📤 Share
         </button>
 
         <button
