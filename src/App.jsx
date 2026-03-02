@@ -16,6 +16,7 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { UserProvider } from "./context/UserContext";
 
 function AppContent() {
   const { user, isConfigured } = useAuth();
@@ -104,7 +105,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <UserProvider>
+        <AppContent />
+      </UserProvider>
     </AuthProvider>
   );
 }
