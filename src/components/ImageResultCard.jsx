@@ -1,59 +1,49 @@
-import { useState } from "react";
-import { getDomain } from "../utils/format";
+import { Maximize2, ExternalLink } from "lucide-react";
 
-export default function ImageResultCard({ title, link, thumbnail }) {
-  const domain = getDomain(link);
-  const [broken, setBroken] = useState(false);
-
-  const showImage = thumbnail && !broken;
+export default function ImageResultCard({ result, onPreview }) {
+  const { title, link, image, displayLink } = result;
 
   return (
-    <a
-      href={link}
-      target="_blank"
-      rel="noreferrer"
-      className="group glass rounded-3xl overflow-hidden border border-white/10 hover:border-white/20 transition-all hover:-translate-y-1"
-      title={title}
-    >
-      <div className="aspect-4/3 w-full bg-white/5 border-b border-white/10 overflow-hidden relative">
-        {showImage ? (
-          <img
-            src={thumbnail}
-            alt={title}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="h-full w-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
-            onError={() => setBroken(true)}
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center">
-            <div className="text-center px-4">
-              <div className="text-3xl">🖼️</div>
-              <p className="mt-2 text-xs text-white/55">
-                Image preview unavailable
-              </p>
-              <p className="mt-1 text-[11px] text-white/35">
-                (Blocked by source site)
-              </p>
-            </div>
-          </div>
-        )}
+    <div className="group relative glass rounded-3xl overflow-hidden cursor-pointer aspect-square sm:aspect-video lg:aspect-square">
+      <img
+        src={link}
+        alt={title}
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        loading="lazy"
+      />
 
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-linear-to-br from-blue-500/10 via-transparent to-purple-500/10" />
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4">
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview?.(result);
+            }}
+            className="p-2 rounded-xl bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all"
+          >
+            <Maximize2 size={16} />
+          </button>
+          <a
+            href={image?.contextLink}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="p-2 rounded-xl bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all"
+          >
+            <ExternalLink size={16} />
+          </a>
+        </div>
 
-        {!showImage && (
-          <div className="absolute top-3 left-3 text-[10px] px-2 py-1 rounded-full bg-black/40 border border-white/10 text-white/70">
-            preview blocked
-          </div>
-        )}
+        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+          <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mb-1">
+            {displayLink}
+          </p>
+          <p className="text-sm font-bold text-white line-clamp-2 leading-tight">
+            {title}
+          </p>
+        </div>
       </div>
-
-      <div className="p-4">
-        <p className="text-[11px] text-white/55 truncate">{domain}</p>
-        <h3 className="mt-1 text-sm font-semibold text-white/85 line-clamp-2 group-hover:text-white">
-          {title}
-        </h3>
-      </div>
-    </a>
+    </div>
   );
 }

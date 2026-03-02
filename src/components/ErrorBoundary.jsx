@@ -23,19 +23,19 @@ export default class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="max-w-6xl mx-auto px-4 py-10">
-          <ErrorState
-            message={
-              this.state.error?.message ||
-              "Something went wrong. Please refresh."
-            }
-          />
-
-          <div className="mt-6 flex justify-center">
+          <div className="glass rounded-3xl p-8 border border-red-400/20 max-w-md text-center">
+            <div className="text-5xl mb-4">🧩</div>
+            <h2 className="text-2xl font-bold text-main mb-2">
+              Something went wrong
+            </h2>
+            <p className="text-muted mb-6">
+              The application encountered an unexpected error.
+            </p>
             <button
-              onClick={this.reset}
-              className="px-5 py-2 rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/15 transition active:scale-95"
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 rounded-xl bg-blue-500 text-main font-semibold hover:bg-blue-600 transition-all active:scale-95"
             >
-              🔄 Try Again
+              Reload Page
             </button>
           </div>
         </div>

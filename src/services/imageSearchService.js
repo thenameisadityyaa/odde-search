@@ -23,19 +23,25 @@ export async function searchImages(query, page = 1, options = {}) {
 
   const perPage = options.perPage || 10;
 
-  const res = await axios.get(`https://${host}/search`, {
-    params: {
-      query,
-      limit: perPage,
-      page,
-      safe_search: options.safe ? "on" : "off",
-      region: options.region || "in",
-    },
-    headers: {
-      "x-rapidapi-host": host,
-      "x-rapidapi-key": key,
-    },
-  });
-
-  return res.data;
+  try {
+    const res = await axios.get(`https://${host}/search`, {
+      params: {
+        query,
+        limit: perPage,
+        page,
+        safe_search: options.safe ? "on" : "off",
+        region: options.region || "in",
+      },
+      headers: {
+        "x-rapidapi-host": host,
+        "x-rapidapi-key": key,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response?.status === 403) {
+      console.error("Image Search API 403 Forbidden: RapidAPI key issue or plan limit", error.response.data);
+    }
+    throw error;
+  }
 }

@@ -7,19 +7,22 @@ export async function searchNews(query, page = 1, options = {}) {
 
   const perPage = options.perPage || 10;
 
-  const res = await axios.get("https://gnews.io/api/v4/search", {
-    params: {
-      q: query,
-      token: key,
-      lang: "en",
-      country: options.region || "in",
-      max: perPage,
-      page,
-
-      // SafeSearch not officially supported in GNews like Google,
-      // but we keep it for future expandability.
-    },
-  });
-
-  return res.data;
+  try {
+    const res = await axios.get("https://gnews.io/api/v4/search", {
+      params: {
+        q: query,
+        token: key,
+        lang: "en",
+        country: options.region || "in",
+        max: perPage,
+        page,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response?.status === 403) {
+      console.error("GNews API 403 Forbidden: Token issue or plan limit", error.response.data);
+    }
+    throw error;
+  }
 }

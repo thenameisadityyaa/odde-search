@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, ArrowRight } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { saveRecentSearch } from "../utils/storage";
 
 export default function SearchBar({
   size = "lg",
@@ -8,6 +11,7 @@ export default function SearchBar({
   suggestions = [],
   onDropdownChange,
 }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState(defaultValue);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -19,16 +23,13 @@ export default function SearchBar({
     setQuery(defaultValue);
   }, [defaultValue]);
 
-  // Tell parent dropdown state
   useEffect(() => {
     if (onDropdownChange) onDropdownChange(open);
   }, [open, onDropdownChange]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target)) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false);
         setActiveIndex(-1);
       }
@@ -41,51 +42,24 @@ export default function SearchBar({
     size === "lg"
       ? "max-w-2xl"
       : size === "md"
-      ? "max-w-xl"
-      : "max-w-lg";
+        ? "max-w-xl"
+        : "max-w-lg";
 
-  /**
-   * ✅ SANITIZE suggestions
-   * RapidAPI can return keywords as objects.
-   * We always convert to string safely.
-   */
   const safeSuggestions = useMemo(() => {
-    const cleaned = suggestions
+    return (suggestions || [])
       .map((s) => {
         if (typeof s === "string") return s;
-        if (typeof s === "number") return String(s);
-
-        // If object like { keyword: "react" }
-        if (s && typeof s === "object") {
-          if (typeof s.keyword === "string") return s.keyword;
-          if (typeof s.text === "string") return s.text;
-          if (typeof s.value === "string") return s.value;
-        }
-
-        return null;
+        if (s && typeof s === "object") return s.keyword || s.text || s.value;
+        return String(s);
       })
       .filter(Boolean)
       .map((x) => x.trim())
       .filter((x) => x.length > 0);
-
-    // remove duplicates (case-insensitive)
-    const uniq = [];
-    const seen = new Set();
-    for (const item of cleaned) {
-      const k = item.toLowerCase();
-      if (!seen.has(k)) {
-        seen.add(k);
-        uniq.push(item);
-      }
-    }
-    return uniq;
   }, [suggestions]);
 
-  // Filter suggestions based on query
   const filteredSuggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return safeSuggestions.slice(0, 6);
-
     return safeSuggestions
       .filter((s) => s.toLowerCase().includes(q))
       .slice(0, 6);
@@ -97,6 +71,9 @@ export default function SearchBar({
 
     setOpen(false);
     setActiveIndex(-1);
+
+    // Profile-aware history
+    saveRecentSearch(trimmed, user?.id);
 
     if (onSearch) {
       onSearch(trimmed);
@@ -116,13 +93,11 @@ export default function SearchBar({
       setOpen(true);
       return;
     }
-
     if (e.key === "Escape") {
       setOpen(false);
       setActiveIndex(-1);
       return;
     }
-
     if (!filteredSuggestions.length) return;
 
     if (e.key === "ArrowDown") {
@@ -130,9 +105,7 @@ export default function SearchBar({
       setActiveIndex((p) => (p + 1) % filteredSuggestions.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((p) =>
-        p <= 0 ? filteredSuggestions.length - 1 : p - 1
-      );
+      setActiveIndex((p) => (p <= 0 ? filteredSuggestions.length - 1 : p - 1));
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
       doSearch(filteredSuggestions[activeIndex]);
@@ -142,25 +115,8 @@ export default function SearchBar({
   return (
     <div ref={wrapRef} className={`w-full ${width} mx-auto relative z-30`}>
       <form onSubmit={handleSubmit}>
-        <div className="glass-soft flex items-center gap-3 rounded-2xl px-4 py-3">
-          <svg
-            className="h-5 w-5 text-white/60"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <path
-              d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <path
-              d="M21 21l-4.35-4.35"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-
+        <div className="glass-soft flex items-center gap-3 rounded-2xl px-5 py-4 shadow-xl border border-white/10 focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+          <Search size={20} className="text-muted" />
           <input
             value={query}
             onChange={(e) => {
@@ -171,24 +127,22 @@ export default function SearchBar({
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder="Search the web..."
-            className="w-full bg-transparent outline-none text-white placeholder:text-white/45 text-base"
+            className="w-full bg-transparent outline-none text-main placeholder:text-muted text-base sm:text-lg"
             autoComplete="off"
           />
-
           <button
             type="submit"
-            className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-white font-medium hover:bg-white/15 active:scale-95"
+            className="hidden sm:flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2 text-white font-semibold hover:bg-blue-600 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
           >
             Search
+            <ArrowRight size={16} />
           </button>
         </div>
       </form>
 
-      {/* Dropdown */}
       {open && filteredSuggestions.length > 0 && (
         <div className="absolute mt-3 w-full glass rounded-2xl overflow-hidden border border-white/10 shadow-2xl z-50">
-          <div className="px-4 py-2 text-xs text-white/50">Suggestions</div>
-
+          <div className="px-4 py-2 text-xs text-muted">Suggestions</div>
           <div className="max-h-72 overflow-auto">
             {filteredSuggestions.map((item, idx) => {
               const active = idx === activeIndex;
@@ -198,20 +152,16 @@ export default function SearchBar({
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => doSearch(item)}
-                  className={`w-full text-left px-4 py-3 text-sm flex items-center gap-2 ${
-                    active
-                      ? "bg-white/10 text-white"
-                      : "text-white/75 hover:bg-white/10 hover:text-white"
-                  }`}
+                  className={`w-full text-left px-4 py-3 text-sm flex items-center gap-2 ${active ? "bg-white/10 text-main" : "text-muted hover:bg-white/10 hover:text-main"
+                    }`}
                 >
-                  <span className="text-white/50">🔎</span>
+                  <span className="text-muted">🔎</span>
                   <span className="truncate">{item}</span>
                 </button>
               );
             })}
           </div>
-
-          <div className="px-4 py-2 text-[11px] text-white/45 border-t border-white/10">
+          <div className="px-4 py-2 text-[11px] text-muted border-t border-white/10">
             Use ↑ ↓ to navigate • Enter to select • Esc to close
           </div>
         </div>

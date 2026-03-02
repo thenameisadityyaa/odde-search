@@ -23,21 +23,25 @@ export async function searchWebCSE(query, page = 1, options = {}) {
   const perPage = options.perPage || 10;
   const start = (page - 1) * perPage + 1;
 
-  const res = await axios.get("https://www.googleapis.com/customsearch/v1", {
-    params: {
-      key,
-      cx,
-      q: query,
-      start,
-      num: perPage,
-
-      // SafeSearch in CSE
-      safe: options.safe ? "active" : "off",
-
-      // Region = country
-      gl: options.region || "in",
-    },
-  });
-
-  return res.data;
+  try {
+    const res = await axios.get("https://www.googleapis.com/customsearch/v1", {
+      params: {
+        key,
+        cx,
+        q: query,
+        start,
+        num: Math.min(perPage, 10),
+        safe: options.safe ? "active" : "off",
+        gl: options.region || "in",
+        searchType: options.searchType || undefined, // 'image' for images
+        lr: options.language ? `lang_${options.language}` : undefined,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response?.status === 403) {
+      console.error("Google CSE 403 Forbidden: Quota exceeded or invalid key/CX", error.response.data);
+    }
+    throw error;
+  }
 }

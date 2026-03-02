@@ -1,17 +1,23 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EmptyState from "../components/EmptyState";
+import ResultCard from "../components/ResultCard";
 import { getSaved, removeSaved } from "../utils/saved";
+import { Bookmark, Trash2, Share2, ExternalLink } from "lucide-react";
+
+import { useAuth } from "../context/AuthContext";
 
 export default function Saved() {
-  const [saved, setSaved] = useState([]);
+  const { user } = useAuth();
+  const [saved, setSaved] = useState(() => getSaved(user?.id));
 
-  useEffect(() => {
-    setSaved(getSaved());
-  }, []);
+  const handleRemove = (link) => {
+    const updated = removeSaved(link, user?.id);
+    setSaved(updated);
+  };
 
   if (saved.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <EmptyState
           title="No saved results"
           message="Save some results and they will appear here."
@@ -21,55 +27,36 @@ export default function Saved() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="glass rounded-3xl p-6 border border-white/10">
-        <h1 className="text-2xl font-bold text-white/90">Saved Results</h1>
-        <p className="mt-2 text-sm text-white/55">
-          Your bookmarked results are stored locally in your browser.
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="mb-12">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+            <Bookmark size={20} className="text-yellow-400" fill="currentColor" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-main">
+            Saved <span className="text-blue-500">Results</span>
+          </h1>
+        </div>
+        <p className="text-muted max-w-2xl leading-relaxed">
+          Your bookmarked results are stored locally in your browser. You can access them anytime, even offline.
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {saved.map((item) => (
-          <div
-            key={item.link}
-            className="glass rounded-3xl p-5 border border-white/10 hover:border-white/20 transition"
-          >
-            <p className="text-xs text-white/45 truncate">{item.link}</p>
-
-            <a
-              href={item.link}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 block text-lg font-bold text-white/90 hover:text-white transition line-clamp-2"
+          <div key={item.link} className="relative group">
+            <ResultCard
+              result={item}
+              isSaved={true}
+              onSave={() => handleRemove(item.link)}
+            />
+            <button
+              onClick={() => handleRemove(item.link)}
+              className="absolute top-6 right-16 p-2 rounded-xl bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/20"
+              title="Remove from saved"
             >
-              {item.title}
-            </a>
-
-            <p className="mt-2 text-sm text-white/65 leading-relaxed line-clamp-3">
-              {item.snippet}
-            </p>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
-              >
-                ↗ Open
-              </a>
-
-              <button
-                onClick={() => {
-                  const updated = removeSaved(item.link);
-                  setSaved(updated);
-                }}
-                className="px-4 py-2 rounded-xl border border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/15 transition active:scale-95 text-xs"
-              >
-                🗑 Remove
-              </button>
-            </div>
+              <Trash2 size={14} />
+            </button>
           </div>
         ))}
       </div>

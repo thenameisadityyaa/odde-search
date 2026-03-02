@@ -1,228 +1,200 @@
-import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Search, Menu, X, Sun, Moon, LogOut, User, Settings as SettingsIcon, Bookmark } from "lucide-react";
+import useTheme from "../hooks/useTheme";
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Detect scroll for premium animation
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 12);
-
-      // close mobile menu while scrolling (nice UX)
-      if (window.scrollY > 50) setOpen(false);
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Apple-like nav link with underline animation
-  const navClass = ({ isActive }) =>
-    `relative px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200
-     ${
-       isActive
-         ? "bg-white/12 text-white shadow-sm"
-         : "text-white/75 hover:text-white hover:bg-white/8"
-     }
-     group`;
+  const navClass = (path) =>
+    `relative px-4 py-2 text-sm font-bold transition-all duration-300 ${location.pathname === path
+      ? "text-blue-500"
+      : "text-muted hover:text-main"
+    }`;
 
-  // Underline element (hover underline)
-  const Underline = () => (
-    <span
-      className="
-        absolute left-1/2 -translate-x-1/2 bottom-1
-        h-[2px] w-0 rounded-full
-        bg-linear-to-r from-blue-400 via-white/70 to-purple-400
-        transition-all duration-300 ease-out
-        group-hover:w-8
-      "
-    />
-  );
+  const handleSignOut = async () => {
+    await signOut();
+    setShowUserMenu(false);
+    navigate("/login");
+  };
 
-  // Active underline (always visible for active link)
-  const ActiveUnderline = () => (
-    <span
-      className="
-        absolute left-1/2 -translate-x-1/2 bottom-1
-        h-[2px] w-10 rounded-full
-        bg-linear-to-r from-blue-400 via-white/70 to-purple-400
-        shadow-[0_0_14px_rgba(96,165,250,0.35)]
-      "
-    />
-  );
+  const avatarLetter = user?.email?.[0]?.toUpperCase() ?? "U";
 
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? "pt-3" : "pt-4"
-      }`}
-    >
-      <nav className="mx-auto max-w-6xl px-4">
-        <div
-          className={`
-            glass rounded-2xl px-4
-            flex items-center justify-between
-            transition-all duration-300 ease-out
-            ${
-              scrolled
-                ? "py-2.5 shadow-2xl translate-y-1 border-white/18"
-                : "py-3 shadow-xl translate-y-0 border-white/12"
-            }
-          `}
-        >
-          {/* Brand */}
-          <Link
-            to="/"
-            className="text-lg sm:text-xl font-bold tracking-tight group"
-            onClick={() => setOpen(false)}
-          >
-            <span className="group-hover:text-white transition-colors">Odde</span>
-            <span className="text-blue-400 group-hover:text-blue-300 transition-colors">
-              Search
-            </span>
-          </Link>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "py-3" : "py-5"
+      }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`glass rounded-2xl border border-white/10 px-4 sm:px-6 transition-all duration-500 ${scrolled ? "shadow-2xl shadow-black/50" : "bg-transparent border-transparent"
+          }`}>
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                <Search size={20} className="text-white" />
+              </div>
+              <span className="text-xl font-black tracking-tighter text-main">
+                ODDE<span className="text-blue-500">SEARCH</span>
+              </span>
+            </Link>
 
-          {/* Desktop menu */}
-          <div className="hidden sm:flex items-center gap-2">
-            <NavLink to="/" className={navClass}>
-              {({ isActive }) => (
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center gap-1">
+              {user && (
                 <>
-                  Home
-                  {isActive ? <ActiveUnderline /> : <Underline />}
+                  <Link to="/" className={navClass("/")}>
+                    Home
+                    {location.pathname === "/" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
+                  </Link>
+                  <Link to="/saved" className={navClass("/saved")}>
+                    Saved
+                    {location.pathname === "/saved" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
+                  </Link>
+                  <Link to="/settings" className={navClass("/settings")}>
+                    Settings
+                    {location.pathname === "/settings" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
+                  </Link>
                 </>
               )}
-            </NavLink>
+              <Link to="/about" className={navClass("/about")}>
+                About
+                {location.pathname === "/about" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
+              </Link>
 
-            <NavLink to="/search" className={navClass}>
-              {({ isActive }) => (
-                <>
-                  Search
-                  {isActive ? <ActiveUnderline /> : <Underline />}
-                </>
+              <div className="w-px h-6 bg-white/10 mx-4" />
+
+              {/* Theme toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2.5 rounded-xl text-muted hover:text-main hover:bg-white/5 transition-all active:scale-90"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+
+              {/* User menu */}
+              {user && (
+                <div className="relative ml-2">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 p-1 rounded-xl hover:bg-white/5 transition-all active:scale-95"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-sm font-black shadow-lg shadow-blue-500/20">
+                      {avatarLetter}
+                    </div>
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-4 w-64 glass-premium rounded-3xl border border-white/10 shadow-2xl py-3 animate-reveal z-50 overflow-hidden">
+                      <div className="px-5 py-4 border-b border-white/5 mb-2">
+                        <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-1">Account</p>
+                        <p className="text-sm font-bold text-main truncate">{user.email}</p>
+                      </div>
+
+                      <Link
+                        to="/settings"
+                        onClick={() => setShowUserMenu(false)}
+                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-muted hover:bg-white/5 hover:text-main transition-all"
+                      >
+                        <SettingsIcon size={16} className="opacity-70" />
+                        Settings
+                      </Link>
+
+                      <Link
+                        to="/saved"
+                        onClick={() => setShowUserMenu(false)}
+                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-muted hover:bg-white/5 hover:text-main transition-all"
+                      >
+                        <Bookmark size={16} className="opacity-70" />
+                        Saved Results
+                      </Link>
+
+                      <div className="h-px bg-white/5 my-2 mx-5" />
+
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-red-400 hover:bg-red-400/10 transition-all"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
-            </NavLink>
+            </div>
 
-            <NavLink to="/saved" className={navClass}>
-              {({ isActive }) => (
-                <>
-                  Saved
-                  {isActive ? <ActiveUnderline /> : <Underline />}
-                </>
-              )}
-            </NavLink>
-
-            {/* ✅ Day 15 */}
-            <NavLink to="/settings" className={navClass}>
-              {({ isActive }) => (
-                <>
-                  Settings
-                  {isActive ? <ActiveUnderline /> : <Underline />}
-                </>
-              )}
-            </NavLink>
-
-            <NavLink to="/about" className={navClass}>
-              {({ isActive }) => (
-                <>
-                  About
-                  {isActive ? <ActiveUnderline /> : <Underline />}
-                </>
-              )}
-            </NavLink>
-          </div>
-
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setOpen((p) => !p)}
-            className="sm:hidden rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-white/85 hover:bg-white/10 active:scale-95 transition-all"
-            aria-label="Toggle menu"
-            aria-expanded={open}
-          >
-            {open ? <span className="text-lg">✕</span> : <span className="text-lg">☰</span>}
-          </button>
-        </div>
-
-        {/* Mobile dropdown */}
-        <div
-          className={`
-            sm:hidden overflow-hidden transition-all duration-300 ease-out
-            ${open ? "max-h-96 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}
-          `}
-        >
-          <div className="glass rounded-2xl p-3">
-            <div className="flex flex-col gap-2 text-sm font-medium">
-              <NavLink to="/" className={navClass} onClick={() => setOpen(false)}>
-                {({ isActive }) => (
-                  <div className="w-full flex items-center justify-between">
-                    <span>Home</span>
-                    <span
-                      className={`h-[2px] rounded-full transition-all duration-300 ${
-                        isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
-                      }`}
-                    />
-                  </div>
-                )}
-              </NavLink>
-
-              <NavLink to="/search" className={navClass} onClick={() => setOpen(false)}>
-                {({ isActive }) => (
-                  <div className="w-full flex items-center justify-between">
-                    <span>Search</span>
-                    <span
-                      className={`h-[2px] rounded-full transition-all duration-300 ${
-                        isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
-                      }`}
-                    />
-                  </div>
-                )}
-              </NavLink>
-
-              <NavLink to="/saved" className={navClass} onClick={() => setOpen(false)}>
-                {({ isActive }) => (
-                  <div className="w-full flex items-center justify-between">
-                    <span>Saved</span>
-                    <span
-                      className={`h-[2px] rounded-full transition-all duration-300 ${
-                        isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
-                      }`}
-                    />
-                  </div>
-                )}
-              </NavLink>
-
-              {/* ✅ Day 15 */}
-              <NavLink to="/settings" className={navClass} onClick={() => setOpen(false)}>
-                {({ isActive }) => (
-                  <div className="w-full flex items-center justify-between">
-                    <span>Settings</span>
-                    <span
-                      className={`h-[2px] rounded-full transition-all duration-300 ${
-                        isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
-                      }`}
-                    />
-                  </div>
-                )}
-              </NavLink>
-
-              <NavLink to="/about" className={navClass} onClick={() => setOpen(false)}>
-                {({ isActive }) => (
-                  <div className="w-full flex items-center justify-between">
-                    <span>About</span>
-                    <span
-                      className={`h-[2px] rounded-full transition-all duration-300 ${
-                        isActive ? "w-10 bg-blue-400" : "w-0 bg-blue-400"
-                      }`}
-                    />
-                  </div>
-                )}
-              </NavLink>
+            {/* Mobile Toggle */}
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2.5 rounded-xl text-muted hover:text-main"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-2.5 rounded-xl text-muted hover:text-main"
+                aria-label="Toggle menu"
+              >
+                {isOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </div>
         </div>
-      </nav>
-    </header>
+      </div>
+
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-reveal" onClick={() => setIsOpen(false)}>
+          <div className="absolute top-24 left-4 right-4 glass-premium rounded-3xl p-6 border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col gap-2">
+              {user && (
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-blue-500/20">
+                    {avatarLetter}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-muted uppercase tracking-widest mb-0.5">Signed In</p>
+                    <p className="text-sm font-bold text-main truncate">{user.email}</p>
+                  </div>
+                </div>
+              )}
+
+              <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">Home</Link>
+              <Link to="/saved" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">Saved</Link>
+              <Link to="/settings" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">Settings</Link>
+              <Link to="/about" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">About</Link>
+
+              {user && (
+                <>
+                  <div className="h-px bg-white/5 my-2" />
+                  <button
+                    onClick={() => { setIsOpen(false); handleSignOut(); }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 font-bold hover:bg-red-400/10 transition-all text-left"
+                  >
+                    <LogOut size={18} />
+                    Sign Out
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 }

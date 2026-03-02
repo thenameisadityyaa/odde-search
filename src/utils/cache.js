@@ -38,7 +38,7 @@ export function getCache(key) {
     }
 
     return payload.data;
-  } catch (e) {
+  } catch {
     localStorage.removeItem(key);
     return null;
   }

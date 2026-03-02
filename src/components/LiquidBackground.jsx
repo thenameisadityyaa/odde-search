@@ -10,6 +10,7 @@ export default function LiquidBackground() {
           left: "-120px",
           top: "-140px",
           background: "rgba(59, 130, 246, 0.45)", // blue glow
+          opacity: "var(--blob-opacity)",
           animation: "floatSlow 10s ease-in-out infinite",
         }}
       />
@@ -41,7 +42,10 @@ export default function LiquidBackground() {
       />
 
       {/* Soft overlay to keep it premium and reduce contrast */}
-      <div className="absolute inset-0 bg-black/35" />
+      <div
+        className="absolute inset-0 bg-black"
+        style={{ opacity: "var(--overlay-opacity)" }}
+      />
     </div>
   );
 }

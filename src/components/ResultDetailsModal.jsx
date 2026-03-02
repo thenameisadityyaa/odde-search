@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { X, Copy, Share2, ExternalLink, Globe, Check } from "lucide-react";
 
 function getDomain(url) {
   try {
@@ -12,6 +13,11 @@ function getDomain(url) {
 export default function ResultDetailsModal({ open, onClose, result }) {
   const [copied, setCopied] = useState(false);
 
+  // Reset copied state when modal closes
+  if (!open && copied) {
+    setCopied(false);
+  }
+
   const domain = useMemo(() => getDomain(result?.link), [result?.link]);
 
   // ESC close
@@ -24,10 +30,6 @@ export default function ResultDetailsModal({ open, onClose, result }) {
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    setCopied(false);
-  }, [open]);
 
   if (!open || !result?.link) return null;
 
@@ -35,7 +37,7 @@ export default function ResultDetailsModal({ open, onClose, result }) {
     try {
       await navigator.clipboard.writeText(result.link);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
+      setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       console.log("Copy failed:", e);
     }
@@ -58,76 +60,92 @@ export default function ResultDetailsModal({ open, onClose, result }) {
   };
 
   return (
-    <div className="fixed inset-0 z-9999">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fadeIn"
         onClick={onClose}
       />
 
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="w-full max-w-xl glass rounded-3xl overflow-hidden border border-white/12 shadow-2xl">
-          {/* Top */}
-          <div className="px-5 py-4 border-b border-white/10 bg-white/5 flex items-start justify-between gap-3">
+      <div className="relative w-full max-w-xl glass rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate-zoomIn">
+        {/* Header */}
+        <div className="p-6 border-b border-white/10 bg-white/5 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
+              <Globe size={24} className="text-blue-400" />
+            </div>
             <div className="min-w-0">
-              <p className="text-sm text-white/55 truncate">
+              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">
                 {domain || "Website"}
               </p>
-              <h2 className="mt-1 text-lg sm:text-xl font-bold text-white/90 leading-snug line-clamp-2">
+              <h2 className="text-xl font-bold text-main leading-tight line-clamp-2">
                 {result.title || "Result Details"}
               </h2>
             </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-white/10 text-muted hover:text-main transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-8">
+          <p className="text-base text-muted leading-relaxed mb-8">
+            {result.snippet || "No description available for this result."}
+          </p>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-8">
+            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
+              Direct Link
+            </p>
+            <p className="text-sm text-blue-400 break-all font-medium">
+              {result.link}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="grid grid-cols-3 gap-3">
+            <a
+              href={result.link}
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-blue-500 text-white hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+            >
+              <ExternalLink size={20} />
+              <span className="text-[10px] font-bold uppercase">Open</span>
+            </a>
 
             <button
-              onClick={onClose}
-              className="px-3 py-2 rounded-xl border border-white/15 bg-white/10 text-white/80 hover:bg-white/15 transition active:scale-95 text-xs"
+              onClick={copyLink}
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 text-main hover:bg-white/10 transition-all active:scale-95"
             >
-              ✕
+              {copied ? (
+                <Check size={20} className="text-emerald-400" />
+              ) : (
+                <Copy size={20} />
+              )}
+              <span className="text-[10px] font-bold uppercase">
+                {copied ? "Copied" : "Copy"}
+              </span>
+            </button>
+
+            <button
+              onClick={share}
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 text-main hover:bg-white/10 transition-all active:scale-95"
+            >
+              <Share2 size={20} />
+              <span className="text-[10px] font-bold uppercase">Share</span>
             </button>
           </div>
+        </div>
 
-          {/* Body */}
-          <div className="p-5">
-            <p className="text-sm text-white/70 leading-relaxed">
-              {result.snippet || "No snippet available."}
-            </p>
-
-            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-              <p className="text-[11px] text-white/50">Link</p>
-              <p className="mt-1 text-xs text-white/80 break-all">
-                {result.link}
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-5 flex flex-wrap gap-2">
-              <a
-                href={result.link}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
-              >
-                ↗ Open
-              </a>
-
-              <button
-                onClick={copyLink}
-                className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
-              >
-                {copied ? "✅ Copied" : "🔗 Copy link"}
-              </button>
-
-              <button
-                onClick={share}
-                className="px-4 py-2 rounded-xl border border-white/15 bg-white/10 text-white/85 hover:bg-white/15 transition active:scale-95 text-xs"
-              >
-                📤 Share
-              </button>
-            </div>
-
-            <p className="mt-4 text-[11px] text-white/45">
-              Tip: Many sites block iframe preview — Open works always.
-            </p>
-          </div>
+        {/* Footer Note */}
+        <div className="px-8 py-4 bg-white/5 border-t border-white/10">
+          <p className="text-[10px] text-muted text-center italic">
+            Tip: Use "Open" if the site blocks embedded previews.
+          </p>
         </div>
       </div>
     </div>

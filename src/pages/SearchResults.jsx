@@ -1,592 +1,195 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-
+import { useSearchParams } from "react-router-dom";
+import useSearchQuery from "../hooks/useSearchQuery";
+import { getPrefs } from "../utils/preferences";
 import SearchBar from "../components/SearchBar";
 import SearchTabs from "../components/SearchTabs";
-import SearchFilters from "../components/SearchFilters";
-
 import ResultCard from "../components/ResultCard";
 import ImageResultCard from "../components/ImageResultCard";
 import NewsResultCard from "../components/NewsResultCard";
-import ResultsSkeleton from "../components/ResultsSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
-import RecentChips from "../components/RecentChips";
 import PreviewModal from "../components/PreviewModal";
-
-// ✅ Day 16
 import ResultDetailsModal from "../components/ResultDetailsModal";
-
-// ✅ Day 17 Offline
-import useOnlineStatus from "../hooks/useOnlineStatus";
-import OfflineState from "../components/OfflineState";
-
-import {
-  clearRecentSearches,
-  getRecentSearches,
-  saveRecentSearch,
-} from "../utils/storage";
-
-import { searchImages } from "../services/imageSearchService";
-import { searchWebCSE } from "../services/googleCseService";
-import { searchNews } from "../services/newsService";
-
-// ✅ Cache Utils
-import { getCache, makeCacheKey, setCache } from "../utils/cache";
-
-// ✅ Preferences
-import { getPrefs, savePrefs } from "../utils/preferences";
-
-const TRENDING_SEARCH = [
-  "React hooks useEffect",
-  "JavaScript promises",
-  "Tailwind glassmorphism",
-  "Vite React deployment",
-  "Debounce search input",
-];
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2, Filter, SlidersHorizontal } from "lucide-react";
+import { saveItem, isSaved } from "../utils/saved";
+import { useAuth } from "../context/AuthContext";
 
 export default function SearchResults() {
-  const [params] = useSearchParams();
-  const navigate = useNavigate();
-  const query = params.get("q") || "";
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("q") || "";
+  const tab = searchParams.get("tab") || "web";
+  const page = parseInt(searchParams.get("page") || "1");
 
-  const [activeTab, setActiveTab] = useState("all");
+  const [preview, setPreview] = useState(null);
+  const [details, setDetails] = useState(null);
 
-  const [recent, setRecent] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { data, isLoading, isError, error, isFetching } = useSearchQuery(
+    query,
+    tab,
+    page,
+    getPrefs(user?.id),
+    user?.id
+  );
 
-  const [isCached, setIsCached] = useState(false);
-
-  // ✅ Day 17: Online Status
-  const online = useOnlineStatus();
-
-  // ✅ prefs state (persist)
-  const [prefs, setPrefs] = useState(() => {
-    return (
-      getPrefs() || {
-        region: "in",
-        safe: true,
-        perPage: 10,
-      }
-    );
-  });
-
-  const updatePrefs = (patch) => {
-    setPrefs((prev) => {
-      const updated = { ...prev, ...patch };
-      savePrefs(updated);
-      return updated;
-    });
+  const handlePageChange = (newPage) => {
+    setSearchParams({ q: query, tab, page: newPage });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ✅ results
-  const [webResults, setWebResults] = useState([]);
-  const [page, setPage] = useState(1);
-  const [hasNextWeb, setHasNextWeb] = useState(false);
-
-  const [imageResults, setImageResults] = useState([]);
-  const [imagePage, setImagePage] = useState(1);
-
-  const [newsResults, setNewsResults] = useState([]);
-  const [newsPage, setNewsPage] = useState(1);
-  const [hasNextNews, setHasNextNews] = useState(false);
-
-  const [meta, setMeta] = useState({
-    totalResults: null,
-    timeTaken: null,
-  });
-
-  // ✅ preview modal
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewData, setPreviewData] = useState({ title: "", link: "" });
-
-  const handlePreview = ({ title, link }) => {
-    if (!link) return;
-    setPreviewData({ title: title || "Preview", link });
-    setPreviewOpen(true);
+  const handleSave = (result) => {
+    saveItem(result, user?.id);
   };
 
-  // ✅ Day 16 details modal
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [detailsData, setDetailsData] = useState(null);
-
-  const openDetails = (result) => {
-    setDetailsData(result);
-    setDetailsOpen(true);
-  };
-
-  useEffect(() => {
-    setRecent(getRecentSearches());
-  }, []);
-
-  // ✅ Reset pages when query changes
-  useEffect(() => {
-    if (!query.trim()) return;
-
-    saveRecentSearch(query);
-    setRecent(getRecentSearches());
-
-    setPage(1);
-    setImagePage(1);
-    setNewsPage(1);
-  }, [query]);
-
-  // ✅ Reset pages when switching tab
-  useEffect(() => {
-    if (activeTab === "images") setImagePage(1);
-    if (activeTab === "all") setPage(1);
-    if (activeTab === "news") setNewsPage(1);
-  }, [activeTab]);
-
-  // ✅ Reset pages when filters change
-  useEffect(() => {
-    setPage(1);
-    setImagePage(1);
-    setNewsPage(1);
-  }, [prefs.region, prefs.safe, prefs.perPage]);
-
-  // helper for cache keys (query + prefs)
-  const qWithPrefs = useMemo(() => {
-    return `${query}|r=${prefs.region}|s=${prefs.safe ? 1 : 0}|n=${prefs.perPage}`;
-  }, [query, prefs.region, prefs.safe, prefs.perPage]);
-
-  // ✅ fetch logic
-  useEffect(() => {
-    const run = async () => {
-      if (!query.trim()) return;
-
-      // ✅ Day 17: Block API call when offline
-      if (!navigator.onLine) {
-        setLoading(false);
-        setError("You are offline. Please check your internet connection.");
-        return;
-      }
-
-      setLoading(true);
-      setError("");
-      setIsCached(false);
-
-      setWebResults([]);
-      setImageResults([]);
-      setNewsResults([]);
-
-      try {
-        const start = performance.now();
-
-        // IMAGES
-        if (activeTab === "images") {
-          const cacheKey = makeCacheKey("images", qWithPrefs, imagePage);
-          const cached = getCache(cacheKey);
-
-          if (cached) {
-            setImageResults(cached.imageResults || []);
-            setMeta(cached.meta || { totalResults: null, timeTaken: null });
-            setIsCached(true);
-            setLoading(false);
-            return;
-          }
-
-          const data = await searchImages(query, imagePage, prefs);
-          const items =
-            data?.data || data?.results || data?.images || data?.items || [];
-
-          const mappedImages = items
-            .map((img) => ({
-              title: img?.title || img?.name || "Image",
-              thumbnail:
-                img?.thumbnail_url ||
-                img?.thumbnail ||
-                img?.image ||
-                img?.url ||
-                null,
-              link:
-                img?.source_url ||
-                img?.source ||
-                img?.link ||
-                img?.url ||
-                "#",
-            }))
-            .filter((x) => x.link && x.link !== "#");
-
-          const metaObj = {
-            totalResults: null,
-            timeTaken: ((performance.now() - start) / 1000).toFixed(2),
-          };
-
-          setImageResults(mappedImages);
-          setMeta(metaObj);
-
-          setCache(
-            cacheKey,
-            { imageResults: mappedImages, meta: metaObj },
-            1000 * 60 * 30
-          );
-
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          return;
-        }
-
-        // NEWS
-        if (activeTab === "news") {
-          const cacheKey = makeCacheKey("news", qWithPrefs, newsPage);
-          const cached = getCache(cacheKey);
-
-          if (cached) {
-            setNewsResults(cached.newsResults || []);
-            setHasNextNews(!!cached.hasNextNews);
-            setMeta(cached.meta || { totalResults: null, timeTaken: null });
-            setIsCached(true);
-            setLoading(false);
-            return;
-          }
-
-          const data = await searchNews(query, newsPage, prefs);
-          const articles = data?.articles || [];
-
-          const mappedNews = articles
-            .map((a) => ({
-              title: a?.title || "No title",
-              link: a?.url || "#",
-              snippet: a?.description || "No description",
-              image: a?.image || null,
-              source: a?.source?.name || "Unknown Source",
-              publishedAt: a?.publishedAt || null,
-            }))
-            .filter((x) => x.link && x.link !== "#");
-
-          const hasNext = mappedNews.length === (prefs.perPage || 10);
-
-          setNewsResults(mappedNews);
-          setHasNextNews(hasNext);
-
-          const metaObj = {
-            totalResults: null,
-            timeTaken: ((performance.now() - start) / 1000).toFixed(2),
-          };
-
-          setMeta(metaObj);
-
-          setCache(
-            cacheKey,
-            { newsResults: mappedNews, meta: metaObj, hasNextNews: hasNext },
-            1000 * 60 * 30
-          );
-
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          return;
-        }
-
-        // WEB (ALL)
-        const cacheKey = makeCacheKey("web", qWithPrefs, page);
-        const cached = getCache(cacheKey);
-
-        if (cached) {
-          setWebResults(cached.webResults || []);
-          setMeta(cached.meta || { totalResults: null, timeTaken: null });
-          setHasNextWeb(!!cached.hasNextWeb);
-          setIsCached(true);
-          setLoading(false);
-          return;
-        }
-
-        const data = await searchWebCSE(query, page, prefs);
-        const end = performance.now();
-
-        const items = data?.items || [];
-        const mappedWeb = items
-          .map((item) => ({
-            title: item?.title || "No title",
-            link: item?.link || "#",
-            snippet: item?.snippet || "No snippet available",
-          }))
-          .filter((x) => x.link && x.link !== "#");
-
-        const hasNext = !!data?.queries?.nextPage?.length;
-
-        const metaObj = {
-          totalResults: data?.searchInformation?.formattedTotalResults || null,
-          timeTaken: ((end - start) / 1000).toFixed(2),
-        };
-
-        setWebResults(mappedWeb);
-        setHasNextWeb(hasNext);
-        setMeta(metaObj);
-
-        setCache(
-          cacheKey,
-          { webResults: mappedWeb, meta: metaObj, hasNextWeb: hasNext },
-          1000 * 60 * 30
-        );
-
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } catch (err) {
-        console.log("API ERROR:", err);
-        setError(
-          err?.response?.data?.error?.message ||
-            err?.message ||
-            "Failed to fetch search results."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    run();
-  }, [query, activeTab, page, imagePage, newsPage, qWithPrefs, prefs]);
-
-  const suggestions = useMemo(() => {
-    return [...recent, ...TRENDING_SEARCH].slice(0, 20);
-  }, [recent]);
-
-  const handleSearchFromBar = (q) => {
-    navigate(`/search?q=${encodeURIComponent(q)}`);
-  };
+  if (!query) return <EmptyState query="" />;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="glass rounded-3xl p-5 sm:p-7">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold">Search</h1>
-
-          <SearchBar
-            size="md"
-            defaultValue={query}
-            suggestions={suggestions}
-            onSearch={handleSearchFromBar}
-          />
-
-          <SearchTabs active={activeTab} onChange={setActiveTab} />
-
-          <SearchFilters
-            region={prefs.region}
-            safe={prefs.safe}
-            perPage={prefs.perPage}
-            onChange={updatePrefs}
-          />
-
-          <RecentChips
-            items={recent}
-            onSelect={(value) =>
-              navigate(`/search?q=${encodeURIComponent(value)}`)
-            }
-            onClear={() => {
-              clearRecentSearches();
-              setRecent([]);
-            }}
-          />
-
-          {query ? (
-            <p className="text-sm text-white/60">
-              {activeTab === "images" ? (
-                <>
-                  Image Page{" "}
-                  <span className="font-semibold text-white/80">{imagePage}</span>{" "}
-                  for:{" "}
-                </>
-              ) : activeTab === "news" ? (
-                <>
-                  News Page{" "}
-                  <span className="font-semibold text-white/80">{newsPage}</span>{" "}
-                  for:{" "}
-                </>
-              ) : (
-                <>
-                  Page <span className="font-semibold text-white/80">{page}</span>{" "}
-                  for:{" "}
-                </>
-              )}
-              <span className="text-blue-300 font-semibold">{query}</span>
-
-              {!online && (
-                <span className="ml-2 text-[10px] px-2 py-1 rounded-full border border-red-400/20 bg-red-500/10 text-red-200">
-                  offline
-                </span>
-              )}
-
-              {isCached && (
-                <span className="ml-2 text-[10px] px-2 py-1 rounded-full border border-white/15 bg-white/5 text-white/70">
-                  cached
-                </span>
-              )}
-            </p>
-          ) : (
-            <p className="text-sm text-white/55">Enter a query to fetch results.</p>
-          )}
+    <div className="min-h-screen pb-32 bg-liquid">
+      {/* Search Header */}
+      <div className="sticky top-[var(--nav-height)] z-40 pb-4">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="glass-premium rounded-3xl p-4 border border-white/10 shadow-2xl">
+            <div className="flex flex-col md:flex-row md:items-center gap-6">
+              <div className="flex-1">
+                <SearchBar size="md" defaultValue={query} />
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="p-3 rounded-2xl bg-white/5 border border-white/5 text-muted hover:text-main hover:bg-white/10 transition-all">
+                  <Filter size={18} />
+                </button>
+                <button className="p-3 rounded-2xl bg-white/5 border border-white/5 text-muted hover:text-main hover:bg-white/10 transition-all">
+                  <SlidersHorizontal size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <SearchTabs activeTab={tab} onTabChange={(t) => setSearchParams({ q: query, tab: t, page: 1 })} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Results */}
-      <div className="mt-6">
-        {!query ? (
-          <EmptyState
-            title="Start searching"
-            message="Type something to see results."
-          />
-        ) : !online ? (
-          <OfflineState />
-        ) : loading ? (
-          <ResultsSkeleton count={6} />
-        ) : error ? (
-          <ErrorState message={error} />
-        ) : activeTab === "images" ? (
-          imageResults.length === 0 ? (
-            <EmptyState title="No images found" message="Try another keyword." />
-          ) : (
-            <>
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {imageResults.map((img, idx) => (
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {/* Results Info */}
+        {!isLoading && data?.meta && (
+          <div className="mb-10 animate-reveal">
+            <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">
+              Found {data.meta.totalResults.toLocaleString()} results in {data.meta.timeTaken}s
+            </p>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {(isLoading || isFetching) && (
+          <div className="flex flex-col items-center justify-center py-32 animate-reveal">
+            <div className="relative w-20 h-20 mb-8">
+              <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full" />
+              <div className="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin" />
+            </div>
+            <p className="text-main font-black tracking-widest uppercase text-xs">Processing Query...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {isError && !isLoading && (
+          <div className="animate-reveal">
+            <ErrorState message={error?.message || "Something went wrong"} />
+          </div>
+        )}
+
+        {/* Results Grid */}
+        {!isLoading && !isError && data?.results?.length === 0 && (
+          <div className="animate-reveal">
+            <EmptyState query={query} />
+          </div>
+        )}
+
+        {!isLoading && !isError && data?.results?.length > 0 && (
+          <div className="animate-reveal">
+            {tab === "web" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {data.results.map((res, i) => (
+                  <ResultCard
+                    key={i}
+                    result={res}
+                    onSave={handleSave}
+                    isSaved={isSaved(res.link, user?.id)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {tab === "image" && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {data.results.map((res, i) => (
                   <ImageResultCard
-                    key={idx}
-                    title={img.title}
-                    link={img.link}
-                    thumbnail={img.thumbnail}
+                    key={i}
+                    result={res}
+                    onPreview={(img) => setPreview(img)}
                   />
                 ))}
               </div>
+            )}
 
-              <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
-                <button
-                  onClick={() => setImagePage((p) => Math.max(1, p - 1))}
-                  disabled={imagePage === 1}
-                  className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
-                    imagePage === 1
-                      ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
-                      : "border-white/15 bg-white/10 text-white hover:bg-white/15"
-                  }`}
-                >
-                  ← Previous
-                </button>
-
-                <p className="text-sm text-white/60">
-                  Page{" "}
-                  <span className="text-white/90 font-semibold">{imagePage}</span>
-                </p>
-
-                <button
-                  onClick={() => setImagePage((p) => p + 1)}
-                  className="px-5 py-2 rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/15 transition active:scale-95"
-                >
-                  Next →
-                </button>
-              </div>
-            </>
-          )
-        ) : activeTab === "news" ? (
-          newsResults.length === 0 ? (
-            <EmptyState title="No news found" message="Try another keyword." />
-          ) : (
-            <>
-              <div className="grid gap-4">
-                {newsResults.map((r, idx) => (
-                  <NewsResultCard
-                    key={idx}
-                    title={r.title}
-                    link={r.link}
-                    snippet={r.snippet}
-                    image={r.image}
-                    source={r.source}
-                    publishedAt={r.publishedAt}
-                  />
+            {tab === "news" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {data.results.map((res, i) => (
+                  <NewsResultCard key={i} result={res} />
                 ))}
               </div>
+            )}
 
-              <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
-                <button
-                  onClick={() => setNewsPage((p) => Math.max(1, p - 1))}
-                  disabled={newsPage === 1}
-                  className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
-                    newsPage === 1
-                      ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
-                      : "border-white/15 bg-white/10 text-white hover:bg-white/15"
-                  }`}
-                >
-                  ← Previous
-                </button>
+            {/* Pagination */}
+            <div className="mt-24 flex items-center justify-center gap-6">
+              <button
+                disabled={page <= 1}
+                onClick={() => handlePageChange(page - 1)}
+                className="p-4 rounded-[1.5rem] glass-premium border border-white/10 text-main disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/10 transition-all active:scale-90"
+              >
+                <ChevronLeft size={24} />
+              </button>
 
-                <p className="text-sm text-white/60">
-                  Page{" "}
-                  <span className="text-white/90 font-semibold">{newsPage}</span>
-                </p>
-
-                <button
-                  onClick={() => setNewsPage((p) => p + 1)}
-                  disabled={!hasNextNews}
-                  className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
-                    !hasNextNews
-                      ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
-                      : "border-white/15 bg-white/10 text-white hover:bg-white/15"
-                  }`}
-                >
-                  Next →
-                </button>
+              <div className="flex items-center gap-3">
+                {[...Array(Math.min(5, Math.ceil((data?.totalResults || 0) / 10)))].map((_, i) => {
+                  const p = i + 1;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black transition-all ${page === p
+                        ? "bg-blue-500 text-white shadow-xl shadow-blue-500/30 scale-110"
+                        : "glass border border-white/10 text-muted hover:bg-white/10"
+                        }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
               </div>
-            </>
-          )
-        ) : webResults.length === 0 ? (
-          <EmptyState title="No results found" message="Try another keyword." />
-        ) : (
-          <>
-            <div className="grid gap-4">
-              {webResults.map((r, idx) => (
-                <ResultCard
-                  key={idx}
-                  title={r.title}
-                  link={r.link}
-                  snippet={r.snippet}
-                  onPreview={handlePreview}
-                  onDetails={openDetails}
-                />
-              ))}
-            </div>
-
-            <div className="mt-8 glass rounded-3xl p-5 flex items-center justify-between">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
-                  page === 1
-                    ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
-                    : "border-white/15 bg-white/10 text-white hover:bg-white/15"
-                }`}
-              >
-                ← Previous
-              </button>
-
-              <p className="text-sm text-white/60">
-                Page <span className="text-white/90 font-semibold">{page}</span>
-              </p>
 
               <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!hasNextWeb}
-                className={`px-5 py-2 rounded-xl border transition active:scale-95 ${
-                  !hasNextWeb
-                    ? "border-white/10 bg-white/5 text-white/30 cursor-not-allowed"
-                    : "border-white/15 bg-white/10 text-white hover:bg-white/15"
-                }`}
+                onClick={() => handlePageChange(page + 1)}
+                className="p-4 rounded-[1.5rem] glass-premium border border-white/10 text-main hover:bg-white/10 transition-all active:scale-90"
               >
-                Next →
+                <ChevronRight size={24} />
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      {/* Preview Modal */}
       <PreviewModal
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        url={previewData.link}
-        title={previewData.title}
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        url={preview?.link}
+        title={preview?.title}
       />
 
-      {/* ✅ Day 16 Details Modal */}
       <ResultDetailsModal
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        result={detailsData}
+        open={!!details}
+        onClose={() => setDetails(null)}
+        result={details}
       />
     </div>
   );
