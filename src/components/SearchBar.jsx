@@ -115,8 +115,11 @@ export default function SearchBar({
   return (
     <div ref={wrapRef} className={`w-full ${width} mx-auto relative z-30`}>
       <form onSubmit={handleSubmit}>
-        <div className="glass-soft flex items-center gap-3 rounded-2xl px-5 py-4 shadow-xl border border-white/10 focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-          <Search size={20} className="text-muted" />
+        <div
+          className="search-container flex items-center gap-3 px-4 py-3"
+          style={{ paddingLeft: "1rem", paddingRight: "0.75rem" }}
+        >
+          <Search size={18} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
           <input
             value={query}
             onChange={(e) => {
@@ -126,24 +129,47 @@ export default function SearchBar({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Search the web..."
-            className="w-full bg-transparent outline-none text-main placeholder:text-muted text-base sm:text-lg"
+            placeholder="Search the web…"
+            style={{
+              flex: 1,
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "var(--text-main)",
+              fontSize: "0.95rem",
+              fontFamily: "Inter, sans-serif",
+            }}
             autoComplete="off"
           />
           <button
             type="submit"
-            className="hidden sm:flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2 text-white font-semibold hover:bg-blue-600 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
+            className="btn-accent hidden sm:flex items-center gap-1.5 px-4 py-2 text-sm"
+            style={{ flexShrink: 0 }}
           >
             Search
-            <ArrowRight size={16} />
+            <ArrowRight size={14} />
           </button>
         </div>
       </form>
 
       {open && filteredSuggestions.length > 0 && (
-        <div className="absolute mt-3 w-full glass rounded-2xl overflow-hidden border border-white/10 shadow-2xl z-50">
-          <div className="px-4 py-2 text-xs text-muted">Suggestions</div>
-          <div className="max-h-72 overflow-auto">
+        <div
+          className="animate-reveal"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            background: "var(--surface)",
+            border: "1px solid var(--border-strong)",
+            borderRadius: 12,
+            overflow: "hidden",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+            zIndex: 50,
+          }}
+        >
+          <div style={{ padding: "6px 12px 4px", fontSize: 10, fontFamily: "Manrope", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-faint)" }}>Suggestions</div>
+          <div style={{ maxHeight: 260, overflowY: "auto" }}>
             {filteredSuggestions.map((item, idx) => {
               const active = idx === activeIndex;
               return (
@@ -152,17 +178,29 @@ export default function SearchBar({
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => doSearch(item)}
-                  className={`w-full text-left px-4 py-3 text-sm flex items-center gap-2 ${active ? "bg-white/10 text-main" : "text-muted hover:bg-white/10 hover:text-main"
-                    }`}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "9px 12px",
+                    fontSize: "0.85rem",
+                    fontFamily: "Inter, sans-serif",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: active ? "var(--text-main)" : "var(--text-muted)",
+                    background: active ? "var(--surface-2)" : "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
                 >
-                  <span className="text-muted">🔎</span>
-                  <span className="truncate">{item}</span>
+                  <Search size={13} style={{ flexShrink: 0, opacity: 0.5 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
                 </button>
               );
             })}
           </div>
-          <div className="px-4 py-2 text-[11px] text-muted border-t border-white/10">
-            Use ↑ ↓ to navigate • Enter to select • Esc to close
+          <div style={{ padding: "5px 12px 7px", fontSize: "10px", color: "var(--text-faint)", borderTop: "1px solid var(--border)", fontFamily: "Inter" }}>
+            ↑ ↓ navigate · Enter select · Esc close
           </div>
         </div>
       )}

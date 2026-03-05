@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Image as ImageIcon, Newspaper, Star, Shield, Zap, ArrowRight, Sparkles } from "lucide-react";
+import { Search, Image as ImageIcon, Newspaper, Star, Shield, Zap } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import RecentChips from "../components/RecentChips";
 import { getRecentSearches } from "../utils/storage";
@@ -10,94 +10,210 @@ export default function Home() {
   const [recent] = useState(() => getRecentSearches(user?.id));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-32 relative overflow-hidden">
-      {/* Background Accents */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-float" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full animate-float" style={{ animationDelay: '-3s' }} />
+    <div className="min-h-screen bg-app relative">
+      {/* Subtle radial accent — very faint, not glowy */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-20%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "700px",
+            height: "400px",
+            background:
+              "radial-gradient(ellipse at center, rgba(251,84,43,0.06) 0%, transparent 70%)",
+            borderRadius: "50%",
+          }}
+        />
       </div>
 
-      {/* Hero Section */}
-      <section className="text-center relative z-10 animate-reveal">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 mb-10 shadow-xl">
-          <Sparkles size={14} className="animate-pulse" />
-          Next Generation Search
-        </div>
+      <div className="max-w-4xl mx-auto px-6 pt-24 pb-32">
+        {/* ── Hero ──────────────────────────────────────────── */}
+        <section className="text-center animate-reveal" style={{ opacity: 0 }}>
+          {/* Eyebrow label */}
+          <div
+            className="inline-flex items-center gap-2 mb-10"
+            style={{
+              fontSize: "11px",
+              fontFamily: "Manrope, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--accent)",
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "var(--accent)",
+                display: "inline-block",
+              }}
+            />
+            Private · Fast · Open
+          </div>
 
-        <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-main leading-[0.9] mb-8">
-          Search with <br />
-          <span className="bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
-            Infinite Clarity.
-          </span>
-        </h1>
+          {/* Headline — Syne display font */}
+          <h1
+            style={{
+              fontFamily: "Syne, sans-serif",
+              fontWeight: 800,
+              fontSize: "clamp(2.6rem, 6vw, 5rem)",
+              lineHeight: 1.05,
+              letterSpacing: "-0.03em",
+              color: "var(--text-main)",
+              marginBottom: "1.25rem",
+            }}
+          >
+            Search the web
+            <br />
+            <span style={{ color: "var(--accent)" }}>your way.</span>
+          </h1>
 
-        <p className="text-muted max-w-2xl mx-auto text-lg sm:text-xl font-medium leading-relaxed mb-16 opacity-80">
-          Experience a search engine designed for the modern era.
-          Fast, private, and breathtakingly beautiful.
-        </p>
+          {/* Sub-headline — Manrope */}
+          <p
+            className="delay-1 animate-reveal"
+            style={{
+              fontFamily: "Manrope, sans-serif",
+              fontWeight: 400,
+              fontSize: "1.05rem",
+              color: "var(--text-muted)",
+              maxWidth: "480px",
+              margin: "0 auto 3rem",
+              lineHeight: 1.7,
+              opacity: 0,
+            }}
+          >
+            Fast, private, and beautifully minimal. Everything you need,
+            nothing you don&apos;t.
+          </p>
 
-        <div className="max-w-3xl mx-auto">
-          <div className="glass-premium rounded-[2.5rem] p-2 mb-8 shadow-2xl shadow-blue-500/10">
+          {/* Search bar */}
+          <div
+            className="delay-2 animate-reveal"
+            style={{ opacity: 0, maxWidth: "600px", margin: "0 auto 1.5rem" }}
+          >
             <SearchBar size="lg" />
           </div>
-          <RecentChips items={recent} />
-        </div>
-      </section>
 
-      {/* Features Grid */}
-      <section className="mt-40 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <FeatureCard
-          icon={<Search className="text-blue-400" />}
-          title="Web Intelligence"
-          desc="Access the world's information with real-time results powered by advanced indexing."
-          delay="0s"
+          {/* Recent chips */}
+          <div className="delay-3 animate-reveal" style={{ opacity: 0 }}>
+            <RecentChips items={recent} />
+          </div>
+        </section>
+
+        {/* ── Divider ───────────────────────────────────────── */}
+        <div
+          style={{
+            height: "1px",
+            background: "var(--border)",
+            margin: "5rem 0 4rem",
+          }}
         />
-        <FeatureCard
-          icon={<ImageIcon className="text-indigo-400" />}
-          title="Visual Discovery"
-          desc="Immerse yourself in a high-fidelity image gallery with seamless masonry layouts."
-          delay="0.1s"
-        />
-        <FeatureCard
-          icon={<Newspaper className="text-blue-300" />}
-          title="Global Insights"
-          desc="Stay ahead of the curve with real-time news updates from verified global sources."
-          delay="0.2s"
-        />
-        <FeatureCard
-          icon={<Star className="text-blue-500" />}
-          title="Personal Library"
-          desc="Curate your own knowledge base by saving results directly to your secure account."
-          delay="0.3s"
-        />
-        <FeatureCard
-          icon={<Shield className="text-indigo-500" />}
-          title="Privacy Fortress"
-          desc="Your data is your own. We prioritize your privacy with local-first processing."
-          delay="0.4s"
-        />
-        <FeatureCard
-          icon={<Zap className="text-blue-400" />}
-          title="Instant Response"
-          desc="Experience zero-latency search with intelligent caching and lightning-fast delivery."
-          delay="0.5s"
-        />
-      </section>
+
+        {/* ── Features ──────────────────────────────────────── */}
+        <section>
+          <p
+            style={{
+              fontFamily: "Manrope, sans-serif",
+              fontWeight: 600,
+              fontSize: "11px",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--text-faint)",
+              marginBottom: "2rem",
+              textAlign: "center",
+            }}
+          >
+            What&apos;s inside
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: "1px",
+              background: "var(--border)",
+              borderRadius: "14px",
+              overflow: "hidden",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <FeatureCell icon={<Search size={18} />} title="Web Search" desc="Instant results across the open web." delay="0.1s" accent="var(--accent)" />
+            <FeatureCell icon={<ImageIcon size={18} />} title="Image Search" desc="High-resolution image discovery." delay="0.16s" accent="var(--accent-2)" />
+            <FeatureCell icon={<Newspaper size={18} />} title="News" desc="Real-time headlines from global sources." delay="0.22s" accent="var(--accent)" />
+            <FeatureCell icon={<Star size={18} />} title="Saved Results" desc="Bookmark and revisit your findings." delay="0.28s" accent="var(--accent-2)" />
+            <FeatureCell icon={<Shield size={18} />} title="Privacy First" desc="No tracking, no profiling. Ever." delay="0.34s" accent="var(--accent)" />
+            <FeatureCell icon={<Zap size={18} />} title="Instant" desc="Sub-second response with smart caching." delay="0.40s" accent="var(--accent-2)" />
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, desc, delay }) {
+function FeatureCell({ icon, title, desc, delay, accent }) {
   return (
     <div
-      className="glass-premium rounded-[2rem] p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group border border-white/5 hover:border-blue-500/30 animate-reveal"
-      style={{ animationDelay: delay }}
+      className="animate-reveal"
+      style={{
+        opacity: 0,
+        animationDelay: delay,
+        background: "var(--bg-color)",
+        padding: "1.75rem 1.5rem",
+        cursor: "default",
+        transition: "background 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--surface)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "var(--bg-color)";
+      }}
     >
-      <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-8 group-hover:bg-blue-500/10 group-hover:scale-110 transition-all duration-500">
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `color-mix(in srgb, ${accent} 12%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: accent,
+          marginBottom: "1rem",
+        }}
+      >
         {icon}
       </div>
-      <h3 className="text-2xl font-bold text-main mb-4 tracking-tight">{title}</h3>
-      <p className="text-muted text-sm leading-relaxed font-medium opacity-70">{desc}</p>
+      <h3
+        style={{
+          fontFamily: "Manrope, sans-serif",
+          fontWeight: 700,
+          fontSize: "0.93rem",
+          color: "var(--text-main)",
+          marginBottom: "0.4rem",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        style={{
+          fontFamily: "Inter, sans-serif",
+          fontWeight: 400,
+          fontSize: "0.82rem",
+          color: "var(--text-muted)",
+          lineHeight: 1.6,
+        }}
+      >
+        {desc}
+      </p>
     </div>
   );
 }

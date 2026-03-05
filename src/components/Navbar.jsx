@@ -11,21 +11,26 @@ export default function Navbar() {
   const { profile } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
+  // close dropdown when route changes
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    setShowUserMenu(false);
+    setIsOpen(false);
+  }, [location.pathname]);
 
-  const navClass = (path) =>
-    `relative px-4 py-2 text-sm font-bold transition-all duration-300 ${location.pathname === path
-      ? "text-blue-500"
-      : "text-muted hover:text-main"
-    }`;
+  const navLinkStyle = (path) => ({
+    fontSize: "13.5px",
+    fontFamily: "Inter, sans-serif",
+    fontWeight: 500,
+    color: location.pathname === path ? "var(--text-main)" : "var(--text-muted)",
+    textDecoration: "none",
+    padding: "4px 10px",
+    borderRadius: 7,
+    background: location.pathname === path ? "var(--surface-2)" : "transparent",
+    transition: "color 0.15s, background 0.15s",
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -38,184 +43,268 @@ export default function Navbar() {
   const avatarColor = profile?.avatar_color || "blue";
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "py-3" : "py-5"}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`glass rounded-2xl border border-white/10 px-4 sm:px-6 transition-all duration-500 ${scrolled ? "shadow-2xl shadow-black/50" : "bg-transparent border-transparent"}`}>
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                <Search size={20} className="text-white" />
-              </div>
-              <span className="text-xl font-black tracking-tighter text-main">
-                ODDE<span className="text-blue-500">SEARCH</span>
-              </span>
-            </Link>
+    <nav
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        background: "var(--bg-color)",
+        borderBottom: "1px solid var(--border)",
+        height: "var(--nav-height)",
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: "0 1.5rem",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        {/* Logo */}
+        <Link
+          to="/"
+          style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              background: "var(--accent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Search size={15} color="#fff" />
+          </div>
+          <span
+            style={{
+              fontFamily: "Syne, sans-serif",
+              fontWeight: 800,
+              fontSize: "1rem",
+              color: "var(--text-main)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            odd<span style={{ color: "var(--accent)" }}>e</span>
+          </span>
+        </Link>
 
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-1">
-              {user && (
-                <>
-                  <Link to="/" className={navClass("/")}>
-                    Home
-                    {location.pathname === "/" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
-                  </Link>
-                  <Link to="/saved" className={navClass("/saved")}>
-                    Saved
-                    {location.pathname === "/saved" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
-                  </Link>
-                  <Link to="/settings" className={navClass("/settings")}>
-                    Settings
-                    {location.pathname === "/settings" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
-                  </Link>
-                </>
-              )}
-              <Link to="/about" className={navClass("/about")}>
-                About
-                {location.pathname === "/about" && <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full animate-reveal" />}
-              </Link>
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-1">
+          {user && (
+            <>
+              <Link to="/" style={navLinkStyle("/")}>Home</Link>
+              <Link to="/saved" style={navLinkStyle("/saved")}>Saved</Link>
+              <Link to="/settings" style={navLinkStyle("/settings")}>Settings</Link>
+            </>
+          )}
+          <Link to="/about" style={navLinkStyle("/about")}>About</Link>
+        </div>
 
-              <div className="w-px h-6 bg-white/10 mx-4" />
+        {/* Right side */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
 
-              {/* Theme toggle */}
+          {/* Avatar / user menu */}
+          {user && (
+            <div style={{ position: "relative" }}>
               <button
-                onClick={toggleTheme}
-                className="p-2.5 rounded-xl text-muted hover:text-main hover:bg-white/5 transition-all active:scale-90"
-                aria-label="Toggle theme"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: `var(--accent)`,
+                  border: "none",
+                  color: "#fff",
+                  fontFamily: "Manrope, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
               >
-                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  avatarLetter
+                )}
               </button>
 
-              {/* User menu */}
-              {user && (
-                <div className="relative ml-2">
-                  <button
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 p-1 rounded-xl hover:bg-white/5 transition-all active:scale-95"
-                  >
-                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-${avatarColor}-500 to-${avatarColor}-700 flex items-center justify-center text-white text-sm font-black shadow-lg shadow-${avatarColor}-500/20 overflow-hidden`}>
-                      {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        avatarLetter
-                      )}
+              {showUserMenu && (
+                <div
+                  className="animate-reveal"
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 8px)",
+                    width: 220,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border-strong)",
+                    borderRadius: 12,
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+                    overflow: "hidden",
+                    zIndex: 60,
+                  }}
+                >
+                  {/* User info */}
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                      <span style={{ fontSize: 10, fontFamily: "Manrope", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-faint)" }}>Account</span>
+                      <span style={{ fontSize: 9, fontFamily: "Manrope", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 4, background: profile?.role === "admin" ? "rgba(251,191,36,0.12)" : "var(--accent-soft)", color: profile?.role === "admin" ? "#f59e0b" : "var(--accent)" }}>
+                        {profile?.role || "User"}
+                      </span>
                     </div>
+                    <p style={{ fontSize: "0.83rem", fontFamily: "Manrope", fontWeight: 600, color: "var(--text-main)", marginBottom: 1 }}>{displayName}</p>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{user.email}</p>
+                  </div>
+
+                  {/* Menu items */}
+                  <Link to="/settings" onClick={() => setShowUserMenu(false)} style={{ ...menuItemStyle() }}>
+                    <SettingsIcon size={14} style={{ opacity: 0.6 }} /> Settings
+                  </Link>
+                  <Link to="/saved" onClick={() => setShowUserMenu(false)} style={{ ...menuItemStyle() }}>
+                    <Bookmark size={14} style={{ opacity: 0.6 }} /> Saved Results
+                  </Link>
+                  <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+                  <button onClick={handleSignOut} style={{ ...menuItemStyle(), color: "#f87171", width: "100%", textAlign: "left", border: "none", cursor: "pointer" }}>
+                    <LogOut size={14} /> Sign Out
                   </button>
-
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-4 w-64 glass-premium rounded-3xl border border-white/10 shadow-2xl py-3 animate-reveal z-50 overflow-hidden">
-                      <div className="px-5 py-4 border-b border-white/5 mb-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Signed In As</p>
-                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md border ${profile?.role === 'admin' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                            {profile?.role || 'User'}
-                          </span>
-                        </div>
-                        <p className="text-sm font-bold text-main truncate">{displayName}</p>
-                        <p className="text-[10px] text-muted truncate">{user.email}</p>
-                      </div>
-
-                      <Link
-                        to="/settings"
-                        onClick={() => setShowUserMenu(false)}
-                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-muted hover:bg-white/5 hover:text-main transition-all"
-                      >
-                        <SettingsIcon size={16} className="opacity-70" />
-                        Settings
-                      </Link>
-
-                      <Link
-                        to="/saved"
-                        onClick={() => setShowUserMenu(false)}
-                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-muted hover:bg-white/5 hover:text-main transition-all"
-                      >
-                        <Bookmark size={16} className="opacity-70" />
-                        Saved Results
-                      </Link>
-
-                      <div className="h-px bg-white/5 my-2 mx-5" />
-
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-red-400 hover:bg-red-400/10 transition-all"
-                      >
-                        <LogOut size={16} />
-                        Sign Out
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Mobile Toggle */}
-            <div className="md:hidden flex items-center gap-2">
-              <button
-                onClick={toggleTheme}
-                className="p-2.5 rounded-xl text-muted hover:text-main"
-                aria-label="Toggle theme"
-              >
-                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="p-2.5 rounded-xl text-muted hover:text-main"
-                aria-label="Toggle menu"
-              >
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
-          </div>
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            {isOpen ? <X size={16} /> : <Menu size={16} />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-reveal" onClick={() => setIsOpen(false)}>
-          <div className="absolute top-24 left-4 right-4 glass-premium rounded-3xl p-6 border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-col gap-2">
-              {user && (
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-${avatarColor}-600 to-${avatarColor}-800 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-${avatarColor}-500/20 overflow-hidden`}>
-                    {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      avatarLetter
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <p className="text-xs font-black text-muted uppercase tracking-widest">Signed In</p>
-                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md border ${profile?.role === 'admin' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                        {profile?.role || 'User'}
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-main truncate">{displayName}</p>
-                  </div>
-                </div>
-              )}
-
-              <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">Home</Link>
-              <Link to="/saved" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">Saved</Link>
-              <Link to="/settings" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">Settings</Link>
-              <Link to="/about" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-main font-bold hover:bg-white/5 transition-all">About</Link>
-
-              {user && (
-                <>
-                  <div className="h-px bg-white/5 my-2" />
-                  <button
-                    onClick={() => { setIsOpen(false); handleSignOut(); }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 font-bold hover:bg-red-400/10 transition-all text-left"
-                  >
-                    <LogOut size={18} />
-                    Sign Out
-                  </button>
-                </>
-              )}
+        <div
+          className="md:hidden animate-reveal"
+          style={{
+            position: "fixed",
+            top: "var(--nav-height)",
+            left: 0,
+            right: 0,
+            background: "var(--bg-color)",
+            borderBottom: "1px solid var(--border)",
+            padding: "0.75rem 1.5rem 1rem",
+            zIndex: 49,
+          }}
+        >
+          {user && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <MobileLink to="/" label="Home" active={location.pathname === "/"} onClick={() => setIsOpen(false)} />
+              <MobileLink to="/saved" label="Saved" active={location.pathname === "/saved"} onClick={() => setIsOpen(false)} />
+              <MobileLink to="/settings" label="Settings" active={location.pathname === "/settings"} onClick={() => setIsOpen(false)} />
             </div>
-          </div>
+          )}
+          <MobileLink to="/about" label="About" active={location.pathname === "/about"} onClick={() => setIsOpen(false)} />
+          {user && (
+            <>
+              <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
+              <button
+                onClick={() => { setIsOpen(false); handleSignOut(); }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, color: "#f87171", fontSize: "0.88rem", fontFamily: "Inter", fontWeight: 500, background: "transparent", border: "none", cursor: "pointer", width: "100%" }}
+              >
+                <LogOut size={15} /> Sign Out
+              </button>
+            </>
+          )}
         </div>
       )}
     </nav>
+  );
+}
+
+function menuItemStyle() {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "9px 16px",
+    fontSize: "0.83rem",
+    fontFamily: "Inter, sans-serif",
+    fontWeight: 400,
+    color: "var(--text-muted)",
+    textDecoration: "none",
+    background: "transparent",
+    cursor: "pointer",
+  };
+}
+
+function MobileLink({ to, label, active, onClick }) {
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      style={{
+        display: "block",
+        padding: "10px 12px",
+        borderRadius: 8,
+        fontSize: "0.9rem",
+        fontFamily: "Inter, sans-serif",
+        fontWeight: active ? 600 : 400,
+        color: active ? "var(--text-main)" : "var(--text-muted)",
+        background: active ? "var(--surface-2)" : "transparent",
+        textDecoration: "none",
+      }}
+    >
+      {label}
+    </Link>
   );
 }

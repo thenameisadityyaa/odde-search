@@ -2,10 +2,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import LiquidBackground from "./components/LiquidBackground";
+import MouseFollower from "./components/MouseFollower";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import useTheme from "./hooks/useTheme";
+import useLenis from "./hooks/useLenis";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import Home from "./pages/Home";
@@ -21,26 +23,22 @@ import { UserProvider } from "./context/UserContext";
 function AppContent() {
   const { user, isConfigured } = useAuth();
   useTheme();
+  useLenis();
 
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-liquid text-white flex items-center justify-center p-4">
-        <LiquidBackground />
-        <div className="glass max-w-md w-full p-8 rounded-3xl border border-white/10 text-center shadow-2xl relative z-10">
-          <div className="w-16 h-16 bg-yellow-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">⚠️</span>
-          </div>
-          <h1 className="text-2xl font-bold text-main mb-4">Supabase Setup Required</h1>
-          <p className="text-muted text-sm mb-8 leading-relaxed">
-            To enable authentication and multi-user support, please add your Supabase credentials to the <code className="bg-white/10 px-1.5 py-0.5 rounded text-blue-400">.env</code> file.
+      <div style={{ minHeight: "100vh", background: "var(--bg-color)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "2rem", maxWidth: 420, width: "100%", textAlign: "center" }}>
+          <div style={{ width: 52, height: 52, background: "rgba(251,191,36,0.1)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", fontSize: "1.5rem" }}>⚠️</div>
+          <h1 style={{ fontFamily: "Syne, sans-serif", fontSize: "1.3rem", fontWeight: 700, color: "var(--text-main)", marginBottom: "0.75rem" }}>Supabase Setup Required</h1>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1.25rem" }}>
+            Add your Supabase credentials to the <code style={{ background: "var(--surface-2)", padding: "1px 5px", borderRadius: 4, fontSize: "0.8rem" }}>.env</code> file.
           </p>
-          <div className="space-y-3 text-left bg-black/20 p-4 rounded-xl border border-white/5 font-mono text-[11px]">
-            <p className="text-blue-400">VITE_SUPABASE_URL=...</p>
-            <p className="text-blue-400">VITE_SUPABASE_ANON_KEY=...</p>
+          <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "0.75rem 1rem", fontFamily: "monospace", fontSize: 11, textAlign: "left", color: "var(--accent)" }}>
+            <p>VITE_SUPABASE_URL=...</p>
+            <p style={{ marginTop: 4 }}>VITE_SUPABASE_ANON_KEY=...</p>
           </div>
-          <p className="text-xs text-muted mt-8">
-            Restart the development server after updating the file.
-          </p>
+          <p style={{ fontSize: "0.72rem", color: "var(--text-faint)", marginTop: "1rem" }}>Restart the dev server after updating the file.</p>
         </div>
       </div>
     );
@@ -49,8 +47,8 @@ function AppContent() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <div className="min-h-screen bg-liquid text-white relative">
-          <LiquidBackground />
+        <div className="min-h-screen bg-app relative">
+          <MouseFollower />
           <Navbar />
 
           <main className="pt-[var(--nav-height)] pb-10">
