@@ -35,7 +35,14 @@ export function AuthProvider({ children }) {
 
     const signUp = (email, password) => {
         if (!supabase) return Promise.reject(new Error("Supabase not configured"));
-        return supabase.auth.signUp({ email, password });
+        const origin = window.location.origin.replace(/\/$/, "");
+        return supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                emailRedirectTo: origin,
+            }
+        });
     };
 
     const signOut = () => {
@@ -45,10 +52,11 @@ export function AuthProvider({ children }) {
 
     const signInWithGoogle = () => {
         if (!supabase) return Promise.reject(new Error("Supabase not configured"));
+        const origin = window.location.origin.replace(/\/$/, "");
         return supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: window.location.origin.replace(/\/$/, ""),
+                redirectTo: origin,
             },
         });
     };

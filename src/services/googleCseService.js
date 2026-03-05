@@ -40,7 +40,11 @@ export async function searchWebCSE(query, page = 1, options = {}) {
     return res.data;
   } catch (error) {
     if (error.response?.status === 403) {
-      console.error("Google CSE 403 Forbidden: Quota exceeded or invalid key/CX", error.response.data);
+      const details = error.response.data?.error?.message || "";
+      if (details.toLowerCase().includes("quota")) {
+        throw new Error("Google Search quota exceeded for today. Please try again tomorrow or use a different API key.");
+      }
+      throw new Error("Google Search API error: " + (details || "Forbidden (Check your API key/CX)"));
     }
     throw error;
   }

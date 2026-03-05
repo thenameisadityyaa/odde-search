@@ -75,7 +75,7 @@ export default function SearchResults() {
         {!isLoading && data?.meta && (
           <div className="mb-10 animate-reveal">
             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">
-              Found {data.meta.totalResults.toLocaleString()} results in {data.meta.timeTaken}s
+              Found {(typeof data.meta.totalResults === 'string' ? parseInt(data.meta.totalResults.replace(/,/g, '')) : data.meta.totalResults).toLocaleString()} results in {data.meta.timeTaken}s
             </p>
           </div>
         )}
@@ -94,7 +94,10 @@ export default function SearchResults() {
         {/* Error State */}
         {isError && !isLoading && (
           <div className="animate-reveal">
-            <ErrorState message={error?.message || "Something went wrong"} />
+            <ErrorState
+              message={error?.message || "Something went wrong"}
+              onRetry={() => refetch()}
+            />
           </div>
         )}
 
