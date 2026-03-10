@@ -257,7 +257,7 @@ The team worked on the design, development, and deployment of the ODDE Search pl
 
 <div align="center">
 
-<img src="https://camo.githubusercontent.com/27ef92de96f930b667c019e2b8cf3e32ebe5a2b47acbe4cc19cb14ee2283d2e4/68747470733a2f2f692e70696e696d672e636f6d2f6f726967696e616c732f32392f31322f39382f32393132393834323130386334363638346132366334323737343164623037342e676966" width="100%" />
+<img src="https://media0.giphy.com/media/v1.Y2lkPTZjMDliOTUyZmJqcDU4dW5kcmY3cWg1aGpodmZoZnR4cDAxYnE1OXZuMDM1Ym1lciZlcD12MV9naWZzX3NlYXJjaCZjdD1n/uOAyXaREzn6Noz5yrZ/giphy.gif" width="100%" />
 
 <br>
 
