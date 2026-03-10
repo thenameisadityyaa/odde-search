@@ -247,6 +247,7 @@ GitHub: https://github.com/thenameisadityyaa
 
 **Subham Mallick**
 Contributor
+GitHub: https://github.com/subhammllick
 
 **Abhipsa Patnaik**
 Contributor
