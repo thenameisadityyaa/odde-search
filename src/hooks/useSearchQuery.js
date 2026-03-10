@@ -68,6 +68,7 @@ export default function useSearchQuery(query, activeTab, page, prefs, profileId)
                 meta: {
                     totalResults,
                     timeTaken,
+                    source: data?._source || 'unknown',
                 },
             };
         },

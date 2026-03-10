@@ -21,6 +21,11 @@ export default function ResultCard({ result, onSave, isSaved }) {
           <span className="truncate opacity-70 group-hover:opacity-100 transition-opacity duration-500">
             {displayLink || new URL(link).hostname}
           </span>
+          {result.isMock && (
+            <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[8px] font-black">
+              TOP RESULT
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-2 group-hover:translate-x-0">

@@ -1,47 +1,22 @@
 import axios from "axios";
 
 export async function searchImages(query, page = 1, options = {}) {
-  const host =
-    import.meta.env.VITE_IMAGE_API_HOST ||
-    "real-time-image-search.p.rapidapi.com";
-
-  // ✅ support both naming styles
-  const key =
-    import.meta.env.VITE_IMAGE_API_KEY || import.meta.env.VITE_RAPIDAPI_KEY;
-
-  if (!host || !key) {
-    console.error("Missing Image API env vars", {
-      VITE_IMAGE_API_HOST: import.meta.env.VITE_IMAGE_API_HOST,
-      VITE_IMAGE_API_KEY: import.meta.env.VITE_IMAGE_API_KEY,
-      VITE_RAPIDAPI_KEY: import.meta.env.VITE_RAPIDAPI_KEY,
-    });
-
-    throw new Error(
-      "Missing Image API env vars. Please set VITE_IMAGE_API_KEY or VITE_RAPIDAPI_KEY."
-    );
-  }
-
   const perPage = options.perPage || 10;
 
   try {
-    const res = await axios.get(`https://${host}/search`, {
+    const res = await axios.get("http://localhost:5000/api/search", {
       params: {
-        query,
-        limit: perPage,
+        q: query,
+        type: "image",
         page,
-        safe_search: options.safe ? "on" : "off",
-        region: options.region || "in",
-      },
-      headers: {
-        "x-rapidapi-host": host,
-        "x-rapidapi-key": key,
+        perPage,
+        safe: options.safe,
+        region: options.region,
       },
     });
     return res.data;
   } catch (error) {
-    if (error.response?.status === 403) {
-      console.error("Image Search API 403 Forbidden: RapidAPI key issue or plan limit", error.response.data);
-    }
-    throw error;
+    const details = error.response?.data?.details || error.message;
+    throw new Error("Backend Image API error: " + details);
   }
 }

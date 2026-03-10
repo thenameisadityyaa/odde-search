@@ -73,10 +73,18 @@ export default function SearchResults() {
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Results Info */}
         {!isLoading && data?.meta && (
-          <div className="mb-10 animate-reveal">
+          <div className="mb-10 animate-reveal flex flex-col md:flex-row md:items-center justify-between gap-4">
             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">
               Found {(typeof data.meta.totalResults === 'string' ? parseInt(data.meta.totalResults.replace(/,/g, '')) : data.meta.totalResults).toLocaleString()} results in {data.meta.timeTaken}s
             </p>
+            {data.meta.source && (
+              <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all duration-500 ${data.meta.source === 'cache'
+                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
+                : 'bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
+                }`}>
+                {data.meta.source === 'cache' ? '⚡ Fetched from Backend Server' : '🌐 Live from AI API'}
+              </div>
+            )}
           </div>
         )}
 
