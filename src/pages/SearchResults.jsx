@@ -25,7 +25,7 @@ export default function SearchResults() {
   const [preview, setPreview] = useState(null);
   const [details, setDetails] = useState(null);
 
-  const { data, isLoading, isError, error, isFetching } = useSearchQuery(
+  const { data, isLoading, isError, error, isFetching, refetch } = useSearchQuery(
     query,
     tab,
     page,
