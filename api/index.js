@@ -8,12 +8,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// API Keys with VITE_ fallbacks for Vercel
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const googleCseKey = process.env.GOOGLE_CSE_KEY || process.env.VITE_GOOGLE_CSE_KEY;
+const googleCseCx = process.env.GOOGLE_CSE_CX || process.env.VITE_GOOGLE_CSE_CX;
+const gnewsApiKey = process.env.GNEWS_API_KEY || process.env.VITE_GNEWS_API_KEY;
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Supabase Client
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const CACHE_COLLECTION = "search_cache";
 const MOCK_COLLECTION = "mock_results";
@@ -93,8 +100,8 @@ async function fetchWebSearch(query, page, options) {
     const start = (page - 1) * perPage + 1;
     const res = await axios.get("https://www.googleapis.com/customsearch/v1", {
         params: {
-            key: process.env.GOOGLE_CSE_KEY,
-            cx: process.env.GOOGLE_CSE_CX,
+            key: googleCseKey,
+            cx: googleCseCx,
             q: query,
             start,
             num: Math.min(perPage, 10),
@@ -115,7 +122,7 @@ async function fetchNewsSearch(query, page, options) {
     const res = await axios.get("https://gnews.io/api/v4/search", {
         params: {
             q: query,
-            token: process.env.GNEWS_API_KEY,
+            token: gnewsApiKey,
             lang: "en",
             country: options.region || "in",
             max: perPage,
@@ -131,8 +138,8 @@ async function fetchImageSearch(query, page, options) {
     const start = (page - 1) * perPage + 1;
     const res = await axios.get("https://www.googleapis.com/customsearch/v1", {
         params: {
-            key: process.env.GOOGLE_CSE_KEY,
-            cx: process.env.GOOGLE_CSE_CX,
+            key: googleCseKey,
+            cx: googleCseCx,
             q: query,
             start,
             num: Math.min(perPage, 10),
