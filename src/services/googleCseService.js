@@ -2,9 +2,10 @@ import axios from "axios";
 
 export async function searchWebCSE(query, page = 1, options = {}) {
   const perPage = options.perPage || 10;
-  
+
   try {
-    const res = await axios.get("/api/search", {
+    const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+    const res = await axios.get(`${baseUrl}/api/search`, {
       params: {
         q: query,
         type: options.searchType || "web",
