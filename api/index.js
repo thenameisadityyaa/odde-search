@@ -34,7 +34,7 @@ async function getMockResultsFromDB(query, searchType) {
             console.error("Mock query error:", error.message);
             return [];
         }
-        
+
         return data.map(m => ({
             title: m.title,
             link: m.link,
@@ -102,7 +102,7 @@ async function fetchWebSearch(query, page, options) {
         },
         headers: {
             // Try setting a Referer that matches your Google Console restriction
-            "Referer": "http://localhost:5173", 
+            "Referer": "http://localhost:5173",
         },
         timeout: API_TIMEOUT
     });
@@ -140,7 +140,7 @@ async function fetchImageSearch(query, page, options) {
             searchType: "image"
         },
         headers: {
-            "Referer": "http://localhost:5173", 
+            "Referer": "http://localhost:5173",
         },
         timeout: API_TIMEOUT
     });
@@ -179,7 +179,7 @@ app.get('/api/search', async (req, res) => {
                 })(),
                 getMockResultsFromDB(q, type)
             ]);
-            
+
             apiResults = apiRes;
             mockItems = dbMocks;
             console.log(`[Hybrid Status] Found ${mockItems.length} DB mocks and ${apiResults.items?.length || 0} API results`);
