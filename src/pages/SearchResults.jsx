@@ -75,7 +75,7 @@ export default function SearchResults() {
         {!isLoading && data?.meta && (
           <div className="mb-10 animate-reveal flex flex-col md:flex-row md:items-center justify-between gap-4">
             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">
-              Found {(typeof data.meta.totalResults === 'string' ? parseInt(data.meta.totalResults.replace(/,/g, '')) : data.meta.totalResults).toLocaleString()} results in {data.meta.timeTaken}s
+              Found {((typeof data.meta.totalResults === 'string' ? parseInt(data.meta.totalResults.replace(/,/g, '')) : data.meta.totalResults) || 0).toLocaleString()} results in {data.meta.timeTaken}s
             </p>
             {data.meta.source && (
               <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all duration-500 ${data.meta.source === 'cache'

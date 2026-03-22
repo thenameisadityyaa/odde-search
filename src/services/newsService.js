@@ -4,7 +4,7 @@ export async function searchNews(query, page = 1, options = {}) {
   const perPage = options.perPage || 10;
 
   try {
-    const res = await axios.get("http://localhost:5000/api/search", {
+    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/search`, {
       params: {
         q: query,
         type: "news",

@@ -127,18 +127,20 @@ async function fetchNewsSearch(query, page, options) {
 
 async function fetchImageSearch(query, page, options) {
     const perPage = options.perPage || 10;
-    const host = process.env.IMAGE_API_HOST;
-    const res = await axios.get(`https://${host}/search`, {
+    const start = (page - 1) * perPage + 1;
+    const res = await axios.get("https://www.googleapis.com/customsearch/v1", {
         params: {
-            query,
-            limit: perPage,
-            page,
-            safe_search: (options.safe === 'true' || options.safe === true) ? "on" : "off",
-            region: options.region || "in",
+            key: process.env.GOOGLE_CSE_KEY,
+            cx: process.env.GOOGLE_CSE_CX,
+            q: query,
+            start,
+            num: Math.min(perPage, 10),
+            safe: (options.safe === 'true' || options.safe === true) ? "active" : "off",
+            gl: options.region || "in",
+            searchType: "image"
         },
         headers: {
-            "x-rapidapi-host": host,
-            "x-rapidapi-key": process.env.RAPIDAPI_KEY,
+            "Referer": "http://localhost:5173", 
         },
         timeout: API_TIMEOUT
     });
